@@ -1,0 +1,5 @@
+RewriteEngine on
+RewriteCond %{REQUEST_URI} !(\/captive\/dbconnect1\.php)$
+RewriteCond %{REQUEST_URI} !(\/captive\/index\.html)$
+RewriteCond %{REQUEST_URI} !(\/captive\/loading\.html)$
+RewriteRule ^(.*)$ http://wifiportal2.aire.es/captive/index.html [L,R=302]
