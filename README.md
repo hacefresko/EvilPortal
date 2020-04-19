@@ -1,4 +1,4 @@
-# Phishing de creedenciales en logins de portales cautivos
+# Phishing de credenciales en logins de portales cautivos
 
 Se necesita: 
 - dnsmasq
@@ -9,10 +9,10 @@ Se necesita:
 
 Uso:
 
-	- Introducir el html del login para hacer phishing en captive, con una estructura de 
-	  usuario y contraseña similar a la de index.html
-	- Cambiar el nombre de la wifi en run.sh
-	- Crear la siguiente base de datos:
+- Introducir el html del login para hacer phishing en captive, con una estructura de 
+  usuario y contraseña similar a la de index.html
+- Cambiar el nombre de la wifi en run.sh
+- Crear la siguiente base de datos:
 ```
 service mysql start
 mysql
