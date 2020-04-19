@@ -1,18 +1,18 @@
-# Phishing de credenciales en logins de portales cautivos
+# Captive portal phishing
 
-Se necesita: 
+Programs needed: 
 - dnsmasq
 - hostapd
 - macchanger
 - apache2
 - gnome-terminal
 
-Uso:
+Usage:
+- Put the fake captive portal  in directory /captive, with a similar user/password
+  structure as the example provided in index.html
+- Change wifi name
+- Create the following database:
 
-- Introducir el html del login para hacer phishing en captive, con una estructura de 
-  usuario y contraseña similar a la de index.html
-- Cambiar el nombre de la wifi en run.sh
-- Crear la siguiente base de datos:
 ```
 service mysql start
 mysql
@@ -25,24 +25,21 @@ MariaDB [fakeap]> ALTER DATABASE fakeap CHARACTER SET 'utf8';
 MariaDB [fakeap]> select * from accounts;
 ```
 
-Cómo funciona este script:
+How does it works:
 
-	1.  Crea un punto de acceso wi-fi
+	1.  Creates a wi-fi access point
+	
+	2.  Creates a DHCP and a DNS server with dnsmasq which assign a domain name to the wifi interface 
 
-	2.  Crea un servidor DHCP y uno DNS que redirecciona todo a un servidor Apache2 con 
-	    el html del phishing
+	3.  When a device connects to the acces point, it check for the quality of the conenction
+	    by sending a GET request to some of the default pages such as connectivitycheck.gstatic.com/generate_204
 
-	3.  Cuando un dispositivo se conecta, éste comprueba la calidad de la conexión, enviando
-	    un get request a alguna de las páginas por defecto como 
-	    connectivitycheck.gstatic.com/generate_204.
+	3.1 If the attacker has Internet connection:
+	    Iptables redirects the requests to the Apache server which sends a 302 response pointing 
+	    to our fake captive portal login page (mod_rewrite). Every device is affected.
 
-	3.1 Si hay conexión a Internet:
-	    Iptables redirige las requests a la máquina y ésta responde (mod_rewrite) con código 302 
-	    apuntando al servidor Apache (a sí mismo), indicando a TODOS los dispotivos que es ahi 
-	    donde está el portal cautivo.
-
-	3.2 Si no hay conexión a Internet: 
-	    Dnsmasq redirige las requests a la máquina y ésta (mod_rewrite) responde con código 302 
-	    apuntando al servidor Apache (a sí mismo). Sin embargo,por este método, los dispositivos 
-	    Samsung no consiguen llegar al servidor del portal cautivo, porque de algún modo 
-	    necesitan conexión a Internet para comunicarse con algún servidor (está por investigar)
+	3.2 If the attacker has no Internet connection: 
+	    Dnsmasq redirects every request to the Apache server which sends a 302 response pointing
+	    to our fake captive portal login page (mod_rewrite). With this method, Samsung devices are
+	    not affected as they use a different captive portal detection system, involving Internet 
+	    connection (I am still investigating why).
