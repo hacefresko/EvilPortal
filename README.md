@@ -25,7 +25,7 @@ MariaDB [fakeap]> ALTER DATABASE fakeap CHARACTER SET 'utf8';
 MariaDB [fakeap]> select * from accounts;
 ```
 
-How does it works:
+How does it work:
 
 	1.  Creates a wi-fi access point
 	
