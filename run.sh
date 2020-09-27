@@ -17,76 +17,93 @@ titulo () {
 "
 }
 
-interfaceDetection() {
-	var1=$(airmon-ng | wc -l)
-	if [ $var1 -ge 5 ]
+selectNetworkInterface () {
+	nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
+	nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
+
+	if [ $nInterfaces -eq 1 ]
 	then
-		var2=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
-		if [ $var2 -eq 0 ]
+		echo
+		echo "[-] Configuring network interface..."
+		echo
+		if [ $nMonInterfaces -eq 0 ]
 		then
-			if [ $var1 -eq 5 ]
-			then
-				INTERFAZPROV=$(airmon-ng | grep -oiwE 'wlan[0-9]')
-				VARIABLE=$(airmon-ng start $INTERFAZPROV | grep -o enabled)
-				if [ "$VARIABLE" != "enabled" ]
-				then
-					echo
-					echo "No compatible interfaces were detected"
-					echo
-					ok=0
-				fi
-			else
-				until [ "$VARIABLE" = "enabled" ]
-				do
-					echo "Running interfaces: "
-					echo
-					num=4
-					int=0
-					interfaz=1
-					while [ $interfaz ]
-					do
-						interfaz=$(airmon-ng | sed -n "$num"p | cut -d "	" -f 2)	 
-						info=$(airmon-ng | sed -n "$num"p | cut -d "	" -f 5)
-						driver=$(airmon-ng | sed -n "$num"p | cut -d "	" -f 4 )
-						if [ $interfaz ]
-							then
-							printf '%-4s %-4s %-7s %-3s %-10s %-3s %.44s\n' "[$int]" " -> " "$interfaz" "|" "$driver" "|" "$info"
-						fi
-						num=$(( $num + 1 ))
-						int=$(( $int + 1 ))
-					done
-					echo
-					echo -n "Select an interface: "
-					read OPCION
-					INTERFAZPROV=wlan$OPCION
-					VARIABLE=$(airmon-ng start $INTERFAZPROV | grep -o enabled)
-					if [ "$VARIABLE" != "enabled" ]
-						then
-						echo "Selected interface couldn't be set to monitor mode"
-						echo
-						sleep 2
-						clear
-					fi
-				done
+                        tempInterface=$(airmon-ng | grep -oiE 'wlan[0-9]')
+                        tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
+                        if [ "$tempStatus" != "enabled" ]
+                        then
+				echo
+                                echo "[x] Network interface couldn't be put in monitor mode"
+                                echo
+				ok=0
+                        else
+				interface="$tempInterface"mon
+	                        ok=1
 			fi
-		 	interfaz="$INTERFAZPROV"mon
-			ok=1
-			clear
+		else
+			interface=$(airmon-ng | grep -oiE 'wlan[0-9]mon')
+                        ok=1
 		fi
-		if [ $var2 -ge 1 ]
+	elif [ $nInterfaces -gt 1 ]
+	then
+		echo
+		echo "Network interfaces:"
+		echo
+		line=4
+		i=1
+
+		interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
+                printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
+		while [ ${interface[$i]} ]
+		do
+			line=$(( $line + 1 ))
+                       	i=$(( $i + 1 ))
+
+			interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
+			printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
+			line=$(( $line + 1 ))
+			i=$(( $i + 1 ))
+		done
+		echo
+		echo -n "Select a network interface > "
+		read op
+		echo
+
+		tempInterface=${interface[$op]}
+		substring=$(echo $tempInterface | grep "mon")
+		if [ $substring ]
 		then
-			interfaz=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | sed -n 1p)
-			ok=1
+			interface="$tempInterface"
+	                ok=1
+		else
+			tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
+			if [ "$tempStatus" != "enabled" ]
+			then
+				echo
+				echo "[x] Selected network interface couldn't be put in monitor mode"
+				echo
+				ok=0
+			else
+				interface="$tempInterface"mon
+		                ok=1
+			fi
 		fi
 	else
 		echo
-		echo "No compatible interfaces were detected"
+		echo "[x] No network interface found"
 		echo
 		ok=0
 	fi
+
+	if [ $ok -eq 1 ]
+	then
+		echo
+		echo "[+] Network interface succesfully configured"
+		echo
+	fi
 }
 
-interfaceDetection
+selectNetworkInterface
 if [ $ok -eq 1 ]
 then
 
