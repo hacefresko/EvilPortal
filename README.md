@@ -1,4 +1,4 @@
-# Captive phishing
+# Captive phisher
 
 Bash script to create a WiFi access point or intercept an existing one and perform phishing 
 through a captive portal. 
