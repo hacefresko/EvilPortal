@@ -13,7 +13,7 @@ Programs needed:
 
 Before running the script:
 - Put the fake captive portal in directory /captive, with a similar user/password structure as the example 
-  provided in index.html
+  provided in index.html and add the names of the files to the .htaccess file with the correct format
 - Create the following database:
 
 ```
