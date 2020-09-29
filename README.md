@@ -1,4 +1,7 @@
-# Captive portal phishing
+# Captive phishing
+
+Bash script for creating a WiFi access point or intercepting and existing one and perform
+phishing via a captive portal
 
 Programs needed: 
 - dnsmasq
@@ -27,7 +30,9 @@ MariaDB [fakeap]> select * from accounts;
 
 How does it work:
 
-	1.  Creates a wi-fi access point
+	[1] Create new WiFi
+
+	1.  Creates the WiFi access point.
 	
 	2.  Creates a DHCP and a DNS server with dnsmasq which assign a domain name to the wifi interface 
 
