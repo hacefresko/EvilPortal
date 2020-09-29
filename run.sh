@@ -234,7 +234,7 @@ then
         do
                 echo
                 echo "Select an option:"
-                echo "[1] -> Create new Wi-Fi acces point"
+                echo "[1] -> Create new acces point"
                 echo "[2] -> Intercept existing access point"
                 read -p "> " op
 		echo
