@@ -20,8 +20,8 @@ Before running the script:
 - Create the following database:
 
 ```
-service mysql start
-mysql
+> service mysql start
+> mysql
 MariaDB [(none)]> create database fakeap;
 MariaDB [(none)]> create user user;
 MariaDB [(none)]> grant all on fakeap.* to 'user'@'localhost' identified by 'password';
