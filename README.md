@@ -1,6 +1,6 @@
 # Captive phishing
 
-Bash script for creating a new WiFi access point or intercepting an existing one and then perform phishing 
+Bash script for creating a WiFi access point or intercepting an existing one and perform phishing 
 through a captive portal. 
 
 Programs needed: 
