@@ -1,7 +1,10 @@
 # Captive phisher
 
-Bash script to create a WiFi access point or intercept an existing one and perform phishing 
-through a captive portal. 
+Bash script to perform phishing attacks through captive portals.
+
+It can either create a new access point with a fake captive portal or intercept an existing one
+and pop up a captive portal among the users connected to it (if the WiFi is protected, we must know the password
+in order to create an identical access point).
 
 Programs needed: 
 - airmon-ng
@@ -45,7 +48,7 @@ How does it work:
 
 		1. Select existing access point
 		
-		2. Creates new access point with the same parameters as the existing one with hostapd
+		2. Creates new access point with the same parameters as the existing one with hostapd (some must be provided by the user)
 		
 		3. Creates a DHCP and a DNS server with dnsmasq which assign a domain name to the wifi interface
 		
