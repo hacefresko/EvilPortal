@@ -4,8 +4,8 @@ Bash script to perform phishing attacks through captive portals.
 
 It can either create a new access point with a fake captive portal or intercept an existing one
 and pop up a captive portal among the users connected to it (if the WiFi is protected, we must know the password
-in order to create an identical access point). Interception doesn't work for some access points since nowadays many 
-of them have protections against deauth attacks.
+in order to create an identical access point)[Evil Twin]. Interception doesn't work for some access points since nowadays many 
+of them have protections against deauth attacks (IEEE 802.11w).
 
 Programs needed: 
 - airmon-ng
@@ -45,7 +45,7 @@ How does it work:
 		   connectivitycheck.gstatic.com/generate_204 and gets redirected to the captive portal *
 		   
 		   
-	[2] Intercept existing access point (2 network interface with monitor mode needed)
+	[2] (Evil Twin) Intercept existing access point (2 network interface with monitor mode needed)
 
 		1. Select existing access point
 		
