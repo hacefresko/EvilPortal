@@ -2,7 +2,7 @@
 
 Bash script to perform phishing attacks through captive portals.
 
-It can either create a new access point with a fake captive portal or intercept an existing one
+It can either create a new access point with a captive portal or intercept an existing one
 and pop up a captive portal among the users connected to it (if the WiFi is protected, we must know the password
 in order to create an identical access point)[Evil Twin]. Interception doesn't work for some access points since nowadays many 
 of them have protections against deauth attacks (IEEE 802.11w).
@@ -21,8 +21,8 @@ Before running the script:
 - Create the following database:
 
 ```
-> service mysql start
-> mysql
+$ service mysql start
+$ mysql
 MariaDB [(none)]> create database fakeap;
 MariaDB [(none)]> create user user;
 MariaDB [(none)]> grant all on fakeap.* to 'user'@'localhost' identified by 'password';
