@@ -1,4 +1,4 @@
-# Captive phisher
+# Captive Phisher
 
 Bash script to perform phishing attacks through captive portals.
 
