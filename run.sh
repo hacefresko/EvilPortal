@@ -1,6 +1,6 @@
 #!/bin/bash
 
-tempFolder=fakeap
+tempFolder="/tmp/evilportal"
 
 titulo () {
 	echo "
