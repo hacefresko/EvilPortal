@@ -244,9 +244,8 @@ then
         while [ $op -lt 0 ] || [ $op -gt 2 ]
         do
                 echo
-                echo "Select an option:"
-                echo "[1] -> Create new Wi-Fi acces point"
-                echo "[2] -> Intercept existing access point"
+                echo "[1] -> Create new acces point"
+                echo "[2] -> [Evil Twin] Intercept existing access point"
                 read -p "> " op
 		echo
 
@@ -261,29 +260,29 @@ then
                 deauth=0
                 read -p "Wifi essid > " essid
                 read -p "Channel > " channel
+		echo
 		op=-1
 		echo "Security: "
         	while [ $op -lt 0 ] || [ $op -gt 2 ]
         	do
-			echo
                 	echo "[1] -> Open"
 	                echo "[2] -> WPA2"
         	        read -p "> " op
 			echo
 
-                if [ $op -lt 1 ] || [ $op -gt 2 ]
-                then
-                        echo "Please, select a valid option: "
-                fi
+                	if [ $op -lt 1 ] || [ $op -gt 2 ]
+                	then
+                        	echo "Please, select a valid option: "
+                	fi
 
-		if [ $op -eq 1 ]
-		then
-			encr="OPEN"
-		else
-			encr="WPA"
-		fi
+			if [ $op -eq 1 ]
+			then
+				encr="OPEN"
+			else
+				encr="WPA"
+			fi
 
-        done
+        	done
 	elif [ $op -eq 2 ]
         then
                 deauth=1
