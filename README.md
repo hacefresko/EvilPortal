@@ -59,11 +59,11 @@ MariaDB [fakeap]> select * from accounts;
    connectivitycheck.gstatic.com/generate_204 and gets redirected to the captive portal *
 
 
-* If the attacker has Internet connection:
-  Iptables redirects the requests to the Apache server which sends a 302 response pointing 
-  to our fake captive portal login page (mod_rewrite). Every device is affected.
-  If the attacker has no Internet connection: 
-  Dnsmasq redirects every request to the Apache server which sends a 302 response pointing
-  to our fake captive portal login page (mod_rewrite). With this method, Samsung devices are
-  not affected as they use a different captive portal detection system, involving Internet 
-  connection.
+  * If the attacker has Internet connection:
+    Iptables redirects the requests to the Apache server which sends a 302 response pointing 
+    to our fake captive portal login page (mod_rewrite). Every device is affected.
+    If the attacker has no Internet connection: 
+    Dnsmasq redirects every request to the Apache server which sends a 302 response pointing
+    to our fake captive portal login page (mod_rewrite). With this method, Samsung devices are
+    not affected as they use a different captive portal detection system, involving Internet 
+    connection.
