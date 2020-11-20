@@ -33,7 +33,7 @@ MariaDB [fakeap]> select * from accounts;
 
 ## How does it work:
 
-[1] Create new access point (1 network interface with monitor mode needed)
+[Option 1] Create new access point (1 network interface with monitor mode needed)
 
 1. Creates new access point with hostapd
 
@@ -44,7 +44,7 @@ MariaDB [fakeap]> select * from accounts;
    connectivitycheck.gstatic.com/generate_204 and gets redirected to the captive portal *
 		   
 		   
-[2] (Evil Twin) Intercept existing access point (2 network interface with monitor mode needed)
+[Option 2] (Evil Twin) Intercept existing access point (2 network interface with monitor mode needed)
 
 1. Select existing access point
 		
@@ -59,11 +59,11 @@ MariaDB [fakeap]> select * from accounts;
    connectivitycheck.gstatic.com/generate_204 and gets redirected to the captive portal *
 
 
-  * If the attacker has Internet connection:
-    Iptables redirects the requests to the Apache server which sends a 302 response pointing 
-    to our fake captive portal login page (mod_rewrite). Every device is affected.
-    If the attacker has no Internet connection: 
-    Dnsmasq redirects every request to the Apache server which sends a 302 response pointing
-    to our fake captive portal login page (mod_rewrite). With this method, Samsung devices are
-    not affected as they use a different captive portal detection system, involving Internet 
-    connection.
+\* If the attacker has Internet connection:
+   Iptables redirects the requests to the Apache server which sends a 302 response pointing 
+   to our fake captive portal login page (mod_rewrite). Every device is affected.
+   If the attacker has no Internet connection: 
+   Dnsmasq redirects every request to the Apache server which sends a 302 response pointing
+   to our fake captive portal login page (mod_rewrite). With this method, Samsung devices are
+   not affected as they use a different captive portal detection system, involving Internet 
+   connection.
