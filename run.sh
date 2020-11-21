@@ -117,77 +117,92 @@ selectNetworkInterface2 () {
                 fi
         else
                 echo "[x] Not enough network interfaces found (2)"
+		echo
         	ok=0
 	fi
 
         if [ $ok -eq 1 ]
         then
                 echo "[+] Network interface succesfully configured"
-        fi
+        	echo
+	fi
 
 }
 
 selectNetwork () {
-        gnome-terminal --geometry 117x50+1000+0 -e "bash -c \"airodump-ng -w $tempFolder/temporal --output-format netxml $interface; exec bash\"" -q -t "airodump-ng" 2>/dev/null
+	network=0
+	while [ $network -eq 0 ]
+	do
+		read -p "Seconds to scann for networks [default is 10]> " t
 
-        echo "[-] Press enter to stop scanning networks"
-        read stop
-        pkill airodump-ng
+	        airodump-ng -w $tempFolder/temporal --output-format netxml $interface>/dev/null &
 
-        num=$(grep "<wireless-network"  $tempFolder/temporal-01.kismet.netxml | wc -l)
-        begLines=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
-        endLines=$(grep -n "</wireless-network>" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
+		if [ -z $t ]
+		then
+	        	t=10
+		fi
 
-        i=1
-        while [ $i -le $num ]
-        do
-                beg=$(echo $begLines | cut -d " " -f $i)
-                end=$(echo $endLines | cut -d " " -f $i)
+		echo
+		echo "[-] Scanning for networks ($t seconds)..."
+		echo
+	        sleep $t
+	        pkill airodump-ng
 
-                tusers[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep "</wireless-client>" | wc -l)
-                if [ ${tusers[$i]} -ge 1 ]
-                then
-                        prov=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep -n "<wireless-client" -m 1 | cut -d ":" -f 1)
-                        end=$(( $beg + $prov ))
-                fi
+	        num=$(grep "<wireless-network"  $tempFolder/temporal-01.kismet.netxml | wc -l)
+	        begLines=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
+	        endLines=$(grep -n "</wireless-network>" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
 
-                tbssid[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep BSSID | cut -d ">" -f 2 | cut -d "<" -f 1)
-                tessid[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep essid | cut -d ">" -f 2 | cut -d "<" -f 1)
-                tchannel[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep channel -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
-                tencr[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep encryption -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
+	        i=1
+	        while [ $i -le $num ]
+	        do
+	                beg=$(echo $begLines | cut -d " " -f $i)
+	                end=$(echo $endLines | cut -d " " -f $i)
 
-                if [ -z "${tessid[$i]}" ]
-                then
-                        tessid[$i]="Unknown"
-                fi
+	                tusers[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep "</wireless-client>" | wc -l)
+	                if [ ${tusers[$i]} -ge 1 ]
+	                then
+	                        prov=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep -n "<wireless-client" -m 1 | cut -d ":" -f 1)
+	                        end=$(( $beg + $prov ))
+	                fi
 
-                if [ $(echo "${tencr[$i]}" | grep "WPA") ]
-                then
-                        tencr[$i]="WPA"
-                elif [ $(echo "${tencr[$i]}" | grep "None") ]
-                then
-                        tencr[$i]="OPEN"
-                else
-                        tencr[$i]="-----"
-                fi
+	                tbssid[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep BSSID | cut -d ">" -f 2 | cut -d "<" -f 1)
+	                tessid[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep essid | cut -d ">" -f 2 | cut -d "<" -f 1)
+	                tchannel[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep channel -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
+	                tencr[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep encryption -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
 
-                i=$(( $i + 1 ))
-        done
+	                if [ -z "${tessid[$i]}" ]
+	                then
+	                        tessid[$i]="Unknown"
+	                fi
 
-        echo "WIFI NETWORKS"
-        echo "Network interface: $interface"
-        echo
-        echo "               BSSID        ENCRYPT CHANNEL CLIENTS    ESSID"
-        echo "         --------------------------------------------------------"
-        i=1
-        while [ $i -le $num ]
-        do
-                printf  '%-5s %-2s %-17s %-1s %-5s %-3s %-3s %-3s %-3s %-1s %.44s\n'  "[$i]" "->" "${tbssid[$i]}" "|" "${tencr[$i]}" "|" "${tchannel[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}"
-                i=$(( $i + 1 ))
-        done
+	                if [ $(echo "${tencr[$i]}" | grep "WPA") ]
+	                then
+	                        tencr[$i]="WPA"
+	                elif [ $(echo "${tencr[$i]}" | grep "None") ]
+	                then
+	                        tencr[$i]="OPEN"
+	                else
+	                        tencr[$i]="-----"
+	                fi
 
-        echo
-        read -p "Select a network > " network
+	                i=$(( $i + 1 ))
+	        done
+
+	        echo "WIFI NETWORKS"
+	        echo "Network interface: $interface"
+		echo "+-----+-------------------+-------+-------+-------+----------------------------------+"
+	        echo "|  i  |       BSSID       |ENCRYPT|CHANNEL|CLIENTS|     ESSID                        |"
+	        echo "+-----+-------------------+-------+-------+-------+----------------------------------+"
+	        i=1
+	        while [ $i -le $num ]
+	        do
+	                printf  '%-1s %-3s %-1s %-17s %-1s %-5s %-3s %-3s %-3s %-3s %-1s %-32s %-1s\n'  "|" "$i" "|" "${tbssid[$i]}" "|" "${tencr[$i]}" "|" "${tchannel[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
+	                i=$(( $i + 1 ))
+	        done
+		echo "+-----+-------------------+-------+-------+-------+----------------------------------+"
+	        echo
+	        read -p "Select a network [0 to repeat scann]> " network
+	done
 
         bssid=${tbssid[$network]}
         essid=${tessid[$network]}
@@ -212,7 +227,7 @@ then
 ################################ PROGRAMS NEEDED ####################################
 
 	echo "[-] Updating packages..."
-	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal 2>/dev/null
+	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal >/dev/null
 	rm -r $tempFolder 2>/dev/null
 	mkdir $tempFolder 2>/dev/null
 	echo "[+] All packages updated"
@@ -244,6 +259,7 @@ then
         while [ $op -lt 0 ] || [ $op -gt 2 ]
         do
                 echo
+		echo "Mode:"
                 echo "[1] -> Create new acces point"
                 echo "[2] -> [Evil Twin] Intercept existing access point"
                 read -p "> " op
@@ -319,15 +335,17 @@ ssid=$essid
 hw_mode=g
 wpa=2
 wpa_passphrase=$pass
-wpa_key_mgmt=WPA-PSK WPA-PSK-SHA256
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+rsn_pairwise=CCMP
 channel=$channel
 macaddr_acl=0
+auth_algs=3
 ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 
 	        fi
 
-		gnome-terminal --geometry 117x24+0+0 -e "bash -c \"clear; hostapd $tempFolder/hostapd.conf; exec bash\"" -q -t "$essid $channel" 2>/dev/null
-		clear
+		gnome-terminal --geometry 117x24+0+0 -e "bash -c \"clear; hostapd $tempFolder/hostapd.conf; exec bash\"" -q -t "$essid $channel $encr" 2>/dev/null
 
 ########################## DNSMASQ CONFIG (DNS & DHCP) ###############################
 
