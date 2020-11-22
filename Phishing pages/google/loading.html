@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Iniciando Sesión</title>
+    </head>
+    <body>
+        <p id="text">Iniciando sesión</p>
+    </body>
+    <script>
+        function wait(){
+            if(document.getElementById("text").innerHTML == "Iniciando sesión..."){
+                document.getElementById("text").innerHTML = "Iniciando sesión";
+            }
+            else{
+                document.getElementById("text").innerHTML = document.getElementById("text").innerHTML + ".";
+            }
+        }
+        setInterval(wait, 500);
+    </script>
+</html>
