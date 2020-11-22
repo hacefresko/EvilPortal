@@ -6,6 +6,8 @@ It can either create a new access point with a captive portal or intercept an ex
 and pop up a captive portal among the users connected to it (if the WiFi is protected, we must know the password
 in order to create an identical access point)[Evil Twin].
 
+It has been tested in Kali (run.sh) and Raspbian (raspberry_run.sh)
+
 ## Programs used: 
 - airmon-ng
 - dnsmasq
@@ -16,7 +18,7 @@ in order to create an identical access point)[Evil Twin].
 
 ## Before running the script:
 - Put the fake captive portal in directory /captive, with a similar user/password structure as the example 
-  provided in index.html and add the names of the files to the .htaccess file with the correct format
+  provided in index.html
 - Create the following database:
 
 ```
@@ -52,7 +54,8 @@ MariaDB [fakeap]> select * from accounts;
 		
 3. Creates a DHCP and a DNS server with dnsmasq which assign a domain name to the wifi interface
 		
-4. Takes down the original access point with aireplay
+4. Takes down the original access point with aireplay so the victim connects to us thinking
+   it's connecting back to the original
 	
 5. When a device connects to the acces point, it check for the quality of the conenction
    by sending a GET request to some of the default pages such as 
