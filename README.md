@@ -6,6 +6,8 @@ It can either create a new access point with a captive portal or intercept an ex
 and pop up a captive portal among the users connected to it (if the WiFi is protected, we must know the password
 in order to create an identical access point)[Evil Twin].
 
+It has been tested in Kali (run.sh) and Raspbian (raspberry_run.sh)
+
 ## Programs used: 
 - airmon-ng
 - dnsmasq
