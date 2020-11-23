@@ -430,9 +430,6 @@ address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
 			a2enconf override
 			a2enmod rewrite
 
-			# Removes previous wireless configuration
-			rm -rf /etc/wpa_supplicant/wpa_supplicant.conf
-
 			service apache2 reload
 			service apache2 restart
 			service mysql start
