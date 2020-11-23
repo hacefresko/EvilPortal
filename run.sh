@@ -60,7 +60,7 @@ selectNetworkInterface () {
 		echo -n "Select a network interface > "
 		read op
 		echo
-
+		echo "[-] Configuring netwrok interface..."
 		tempInterface=${interface[$op]}
 		substring=$(echo $tempInterface | grep "mon")
 		if [ $substring ]
@@ -80,17 +80,30 @@ selectNetworkInterface () {
 		fi
 	else
 		echo "[x] No network interface found"
+		echo
 		ok=0
 	fi
 
 	if [ $ok -eq 1 ]
 	then
+		echo "[-] Upgrading network interface..."
+		ifconfig $interface down
+		iw reg set US
+		echo "[+] Network interface upgraded"
+
+		echo "[-] Changing MAC address..."
+		macchanger -r $interface >/dev/null
+		ifconfig $interface up
+		echo "[+] MAC address changed"
+
 		echo "[+] Network interface succesfully configured"
+		echo
 	fi
 }
 
 selectNetworkInterface2 () {
-        nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
+        echo "[-] Configuring network interface..."
+	nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
         nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
 
         if [ $nInterfaces -eq 2 ]
@@ -123,6 +136,16 @@ selectNetworkInterface2 () {
 
         if [ $ok -eq 1 ]
         then
+		echo "[-] Upgrading network interface..."
+		ifconfig $interface down
+		iw reg set US
+		echo "[+] Network interface upgraded"
+
+		echo "[-] Changing MAC address..."
+		macchanger -r $interface >/dev/null
+		ifconfig $interface up
+		echo "[+] MAC address changed"
+
                 echo "[+] Network interface succesfully configured"
         	echo
 	fi
@@ -190,16 +213,16 @@ selectNetwork () {
 
 	        echo "WIFI NETWORKS"
 	        echo "Network interface: $interface"
-		echo "+-----+-------------------+-------+-------+-------+----------------------------------+"
-	        echo "|  i  |       BSSID       |ENCRYPT|CHANNEL|CLIENTS|     ESSID                        |"
-	        echo "+-----+-------------------+-------+-------+-------+----------------------------------+"
+		echo "+-----+-------------------+-------+-------+-------+-----------------------------------+"
+	        echo "|  i  |       BSSID       |ENCRYPT|CHANNEL|CLIENTS|     ESSID                         |"
+	        echo "+-----+-------------------+-------+-------+-------+-----------------------------------+"
 	        i=1
 	        while [ $i -le $num ]
 	        do
-	                printf  '%-1s %-3s %-1s %-17s %-1s %-5s %-3s %-3s %-3s %-3s %-1s %-32s %-1s\n'  "|" "$i" "|" "${tbssid[$i]}" "|" "${tencr[$i]}" "|" "${tchannel[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
+	                printf  '%-1s %-3s %-1s %-17s %-1s %-5s %-3s %-3s %-3s %-3s %-1s %-33s %-1s\n'  "|" "$i" "|" "${tbssid[$i]}" "|" "${tencr[$i]}" "|" "${tchannel[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
 	                i=$(( $i + 1 ))
 	        done
-		echo "+-----+-------------------+-------+-------+-------+----------------------------------+"
+		echo "+-----+-------------------+-------+-------+-------+-----------------------------------+"
 	        echo
 	        read -p "Select a network [0 to repeat scann]> " network
 	done
@@ -243,20 +266,6 @@ else
 		iptables -F
 		iptables -t nat -F
 		echo "[+] Iptables flushed"
-
-############################# POWER UP WI-FI INTERFACE ###############################
-
-		echo "[-] Upgrading network interface..."
-		ifconfig $interface down
-		iw reg set US
-		echo "[+] Network interface upgraded"
-
-################################ CHANGE MAC ADDRESS ##################################
-
-		echo "[-] Changing MAC address..."
-		macchanger -r $interface >/dev/null
-		ifconfig $interface up
-		echo "[+] MAC address changed"
 
 ################################# HOSTAPD CONFIG #####################################
 

