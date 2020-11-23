@@ -441,13 +441,19 @@ address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
 
 			while [ true ]
 			do
+				echo
+				echo "Monitoring actions"
 				echo "[1] -> See hostapd logs"
 				echo "[2] -> Stop hostapd and dnsmasq"
 				echo "[3] -> Stop aireplay-ng"
 				read -p ">" op
+				echo
 				if [ $op -eq 1 ]
 				then
+					echo "HOSTAPD"
+					echo
 					cat $tempFolder/hostapd.log
+					echo
 				elif [ $op -eq 2 ]
 				then
 					pkill hostapd
