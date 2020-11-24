@@ -132,7 +132,7 @@ selectNetworkInterface2 () {
                         fi
                         ok=1
                 fi
-        elif [ $nInterfaces -ge 3]
+        elif [ $nInterfaces -ge 3 ]
 	then
 		echo
                 echo "Network interfaces:"
