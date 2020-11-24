@@ -99,7 +99,7 @@ selectNetworkInterface () {
 
 selectNetworkInterface2 () {
         echo "[-] Configuring network interface..."
-	nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
+        nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
         nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
 
         if [ $nInterfaces -eq 2 ]
@@ -118,33 +118,72 @@ selectNetworkInterface2 () {
                         fi
                 else
                         interface2=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | sed -n 1p)
-			if [ "$1" = "$interface2" ]
+                        if [ "$1" = "$interface2" ]
                         then
                                 interface2=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | sed -n 2p)
                         fi
                         ok=1
                 fi
+        elif [ $nInterfaces -ge 3 ]
+        then
+                echo
+                echo "Network interfaces:"
+                echo
+                line=4
+                i=1
+
+                interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
+                while [ ${interface[$i]} ]
+                do
+                        interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
+                        printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
+                        line=$(( $line + 1 ))
+                        i=$(( $i + 1 ))
+                done
+                echo
+                echo -n "Select a network interface > "
+                read op
+                echo
+                echo "[-] Configuring network interface..."
+
+                tempInterface=${interface[$op]}
+                substring=$(echo $tempInterface | grep "mon")
+                if [ -x $substring ]
+                then
+                        interface2="$tempInterface"
+                        ok=1
+                else
+                        tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
+                        if [ "$tempStatus" != "enabled" ]
+                        then
+                                echo "[x] Selected network interface couldn't be put in monitor mode"
+                                ok=0
+                        else
+                                interface2="$tempInterface"mon
+                                ok=1
+                        fi
+                fi
         else
                 echo "[x] Not enough network interfaces found (2)"
-		echo
-        	ok=0
-	fi
+                echo
+                ok=0
+        fi
 
         if [ $ok -eq 1 ]
         then
-		echo "[-] Upgrading network interface..."
-		ifconfig $interface2 down
-		iw reg set US
-		echo "[+] Network interface upgraded"
+                echo "[-] Upgrading network interface..."
+                ifconfig $interface2 down
+                iw reg set US
+                echo "[+] Network interface upgraded"
 
-		echo "[-] Changing MAC address..."
-		macchanger -r $interface2 >/dev/null
-		ifconfig $interface2 up
-		echo "[+] MAC address changed"
+                echo "[-] Changing MAC address..."
+                macchanger -r $interface2 >/dev/null
+                ifconfig $interface2 up
+                echo "[+] MAC address changed"
 
                 echo "[+] Network interface succesfully configured"
-        	echo
-	fi
+                echo
+        fi
 
 }
 
