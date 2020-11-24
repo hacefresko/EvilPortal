@@ -287,7 +287,7 @@ else
 ################################ PROGRAMS NEEDED ####################################
 
 	echo "[-] Updating packages..."
-	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal macchanger
+	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal macchanger mariadb-server
 	rm -r $tempFolder 2>/dev/null
 	mkdir $tempFolder 2>/dev/null
 	echo "[+] All packages updated"

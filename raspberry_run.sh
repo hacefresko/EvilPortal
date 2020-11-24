@@ -293,7 +293,7 @@ else
 ################################ PROGRAMS NEEDED ####################################
 
 	echo "[-] Updating packages..."
-	apt-get install -y hostapd apache2 dnsmasq aircrack-ng macchanger
+	apt-get install -y hostapd apache2 dnsmasq aircrack-ng macchanger mariadb-server
 	rm -r $tempFolder 2>/dev/null
 	mkdir $tempFolder 2>/dev/null
 	echo "[+] All packages updated"
@@ -401,6 +401,9 @@ auth_algs=3
 ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 
 		        fi
+
+			echo "[-] Configuring access point..."
+
 
 			hostapd $tempFolder/hostapd.conf > $tempFolder/hostapd.log &
 
