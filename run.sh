@@ -45,16 +45,12 @@ selectNetworkInterface () {
 		i=1
 
 		interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
-                printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
 		while [ ${interface[$i]} ]
 		do
-			line=$(( $line + 1 ))
-                       	i=$(( $i + 1 ))
-
-			interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
 			printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
 			line=$(( $line + 1 ))
-			i=$(( $i + 1 ))
+                       	i=$(( $i + 1 ))
+			interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
 		done
 		echo
 		echo -n "Select a network interface > "
@@ -252,7 +248,7 @@ else
 ################################ PROGRAMS NEEDED ####################################
 
 	echo "[-] Updating packages..."
-	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal macchanger >/dev/null
+	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal macchanger
 	rm -r $tempFolder 2>/dev/null
 	mkdir $tempFolder 2>/dev/null
 	echo "[+] All packages updated"

@@ -52,16 +52,12 @@ selectNetworkInterface () {
 		i=1
 
 		interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
-                printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
 		while [ ${interface[$i]} ]
 		do
-			line=$(( $line + 1 ))
-                       	i=$(( $i + 1 ))
-
 			interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
 			printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
 			line=$(( $line + 1 ))
-			i=$(( $i + 1 ))
+                       	i=$(( $i + 1 ))
 		done
 		echo
 		echo -n "Select a network interface > "
@@ -144,18 +140,14 @@ selectNetworkInterface2 () {
                 line=4
                 i=1
 
-                interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "  " -f 2)
-                printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
-                while [ ${interface[$i]} ]
-                do
-                        line=$(( $line + 1 ))
-                        i=$(( $i + 1 ))
-
-                        interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "  " -f 2)
-                        printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
-                        line=$(( $line + 1 ))
-                        i=$(( $i + 1 ))
-                done
+		interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
+		while [ ${interface[$i]} ]
+		do
+			interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
+			printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
+			line=$(( $line + 1 ))
+                       	i=$(( $i + 1 ))
+		done
                 echo
                 echo -n "Select a network interface > "
                 read op
