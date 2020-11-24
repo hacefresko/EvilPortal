@@ -293,7 +293,7 @@ else
 ################################ PROGRAMS NEEDED ####################################
 
 	echo "[-] Updating packages..."
-	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal macchanger
+	apt-get install -y hostapd apache2 dnsmasq aircrack-ng macchanger
 	rm -r $tempFolder 2>/dev/null
 	mkdir $tempFolder 2>/dev/null
 	echo "[+] All packages updated"
@@ -402,7 +402,7 @@ ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 
 		        fi
 
-			hostapd $tempFolder/hostapd.conf -B > $tempFolder/hostapd.log
+			hostapd $tempFolder/hostapd.conf > $tempFolder/hostapd.log &
 
 ########################## DNSMASQ CONFIG (DNS & DHCP) ###############################
 
@@ -474,6 +474,34 @@ address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
 			if [ $deauth -eq 1 ]
 		        then
 				deauth $bssid $channel $interface2
+
+				while [ true ]
+				do
+					echo
+					echo "Monitoring actions"
+					echo "[1] -> See hostapd logs"
+					echo "[2] -> Stop hostapd and dnsmasq"
+					echo "[3] -> Stop aireplay-ng"
+					read -p ">" op
+					echo
+					if [ $op -eq 1 ]
+					then
+						echo "HOSTAPD"
+						echo
+						cat $tempFolder/hostapd.log
+						echo
+					elif [ $op -eq 2 ]
+					then
+						pkill hostapd
+						pkill dnsmasq
+					elif [ $op -eq 3 ]
+					then
+						pkill aireplay-ng
+					elif [ $op -le 0 ] || [ $op -ge 4 ]
+					then
+						echo "[x]Please, select a valid option"
+					fi
+				done
 			fi
 
 			while [ true ]
@@ -482,7 +510,6 @@ address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
 				echo "Monitoring actions"
 				echo "[1] -> See hostapd logs"
 				echo "[2] -> Stop hostapd and dnsmasq"
-				echo "[3] -> Stop aireplay-ng"
 				read -p ">" op
 				echo
 				if [ $op -eq 1 ]
@@ -495,10 +522,7 @@ address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
 				then
 					pkill hostapd
 					pkill dnsmasq
-				elif [ $op -eq 3 ]
-				then
-					pkill aireplay-ng
-				elif [ $op -le 0 ] || [ $op -ge 4 ]
+				elif [ $op -le 0 ] || [ $op -ge 3 ]
 				then
 					echo "[x]Please, select a valid option"
 				fi
