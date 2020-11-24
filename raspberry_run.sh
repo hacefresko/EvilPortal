@@ -136,7 +136,50 @@ selectNetworkInterface2 () {
                         fi
                         ok=1
                 fi
-        else
+        elif [ $nInterfaces -ge 3]
+	then
+		echo
+                echo "Network interfaces:"
+                echo
+                line=4
+                i=1
+
+                interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "  " -f 2)
+                printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
+                while [ ${interface[$i]} ]
+                do
+                        line=$(( $line + 1 ))
+                        i=$(( $i + 1 ))
+
+                        interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "  " -f 2)
+                        printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
+                        line=$(( $line + 1 ))
+                        i=$(( $i + 1 ))
+                done
+                echo
+                echo -n "Select a network interface > "
+                read op
+                echo
+                echo "[-] Configuring network interface..."
+
+                tempInterface=${interface[$op]}
+                substring=$(echo $tempInterface | grep "mon")
+                if [ $substring ]
+                then
+                        interface2="$tempInterface"
+                        ok=1
+                else
+                        tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
+                        if [ "$tempStatus" != "enabled" ]
+                        then
+                                echo "[x] Selected network interface couldn't be put in monitor mode"
+                                ok=0
+                        else
+                                interface2="$tempInterface"mon
+                                ok=1
+                        fi
+                fi
+	else
                 echo "[x] Not enough network interfaces found (2)"
 		echo
         	ok=0
@@ -145,13 +188,13 @@ selectNetworkInterface2 () {
         if [ $ok -eq 1 ]
         then
 		echo "[-] Upgrading network interface..."
-                ifconfig $interface down
+                ifconfig $interface2 down
                 iw reg set US
                 echo "[+] Network interface upgraded"
 
                 echo "[-] Changing MAC address..."
-                macchanger -r $interface >/dev/null
-                ifconfig $interface up
+                macchanger -r $interface2 >/dev/null
+                ifconfig $interface2 up
                 echo "[+] MAC address changed"
 
                 echo "[+] Network interface succesfully configured"
@@ -254,17 +297,19 @@ if [ $EUID -ne 0 ]
 then
 	echo "[x] Please, run script as root"
 else
-	selectNetworkInterface
-	if [ $ok -eq 1 ]
-	then
 
 ################################ PROGRAMS NEEDED ####################################
 
-		echo "[-] Updating packages..."
-		apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal >/dev/null
-		rm -r $tempFolder 2>/dev/null
-		mkdir $tempFolder 2>/dev/null
-		echo "[+] All packages updated"
+	echo "[-] Updating packages..."
+	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal macchanger >/dev/null
+	rm -r $tempFolder 2>/dev/null
+	mkdir $tempFolder 2>/dev/null
+	echo "[+] All packages updated"
+
+
+	selectNetworkInterface
+	if [ $ok -eq 1 ]
+	then
 
 ######################### IPTABLES FLUSH TO AVOID CONFLICTS ##########################
 

@@ -137,13 +137,13 @@ selectNetworkInterface2 () {
         if [ $ok -eq 1 ]
         then
 		echo "[-] Upgrading network interface..."
-		ifconfig $interface down
+		ifconfig $interface2 down
 		iw reg set US
 		echo "[+] Network interface upgraded"
 
 		echo "[-] Changing MAC address..."
-		macchanger -r $interface >/dev/null
-		ifconfig $interface up
+		macchanger -r $interface2 >/dev/null
+		ifconfig $interface2 up
 		echo "[+] MAC address changed"
 
                 echo "[+] Network interface succesfully configured"
@@ -248,17 +248,18 @@ if [ $EUID -ne 0 ]
 then
 	echo "[x] Please, run script as root"
 else
-	selectNetworkInterface
-	if [ $ok -eq 1 ]
-	then
 
 ################################ PROGRAMS NEEDED ####################################
 
-		echo "[-] Updating packages..."
-		apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal >/dev/null
-		rm -r $tempFolder 2>/dev/null
-		mkdir $tempFolder 2>/dev/null
-		echo "[+] All packages updated"
+	echo "[-] Updating packages..."
+	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal macchanger >/dev/null
+	rm -r $tempFolder 2>/dev/null
+	mkdir $tempFolder 2>/dev/null
+	echo "[+] All packages updated"
+
+	selectNetworkInterface
+	if [ $ok -eq 1 ]
+	then
 
 ######################### IPTABLES FLUSH TO AVOID CONFLICTS ##########################
 
