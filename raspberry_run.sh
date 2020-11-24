@@ -201,7 +201,7 @@ selectNetwork () {
 	do
 		read -p "Seconds to scann for networks [default is 10]> " t
 
-	        airodump-ng -w $tempFolder/temporal --output-format netxml $interface>/dev/null &
+	        screen -d -m airodump-ng -w $tempFolder/temporal --output-format netxml $interface
 
 		if [ -z $t ]
 		then
@@ -293,7 +293,7 @@ else
 ################################ PROGRAMS NEEDED ####################################
 
 	echo "[-] Updating packages..."
-	apt-get install -y hostapd apache2 dnsmasq aircrack-ng macchanger mariadb-server
+	apt-get install -y hostapd apache2 dnsmasq aircrack-ng macchanger mariadb-server screen
 	rm -r $tempFolder 2>/dev/null
 	mkdir $tempFolder 2>/dev/null
 	echo "[+] All packages updated"
@@ -485,7 +485,7 @@ address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
 					echo "[1] -> See hostapd logs"
 					echo "[2] -> Stop hostapd and dnsmasq"
 					echo "[3] -> Stop aireplay-ng"
-					read -p ">" op
+					read -p "> " op
 					echo
 					if [ $op -eq 1 ]
 					then
@@ -513,7 +513,7 @@ address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
 				echo "Monitoring actions"
 				echo "[1] -> See hostapd logs"
 				echo "[2] -> Stop hostapd and dnsmasq"
-				read -p ">" op
+				read -p "> " op
 				echo
 				if [ $op -eq 1 ]
 				then
