@@ -217,12 +217,6 @@ selectNetwork () {
 	                end=$(echo $endLines | cut -d " " -f $i)
 
 	                tusers[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep "</wireless-client>" | wc -l)
-	                if [ ${tusers[$i]} -ge 1 ]
-	                then
-	                        prov=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep -n "<wireless-client" -m 1 | cut -d ":" -f 1)
-	                        end=$(( $beg + $prov ))
-	                fi
-
 	                tbssid[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep BSSID | cut -d ">" -f 2 | cut -d "<" -f 1)
 	                tessid[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep essid | cut -d ">" -f 2 | cut -d "<" -f 1)
 	                tchannel[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep channel -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
