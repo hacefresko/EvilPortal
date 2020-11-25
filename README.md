@@ -15,6 +15,7 @@ It has been tested in Kali (run.sh) and Raspbian (raspberry_run.sh)
 - macchanger
 - apache2
 - gnome-terminal
+- screen (for raspberry version)
 
 ## Before running the script:
 - Put the fake captive portal in directory /captive, with a similar user/password structure as the example 
@@ -29,7 +30,7 @@ MariaDB [(none)]> create user user;
 MariaDB [(none)]> grant all on fakeap.* to 'user'@'localhost' identified by 'password';
 MariaDB [(none)]> use fakeap
 MariaDB [fakeap]> create table accounts(email varchar(30), password varchar(30));
-MariaDB [fakeap]> ALTER DATABASE fakeap CHARACTER SET 'utf8';
+MariaDB [fakeap]> alter database fakeap character set 'utf8';
 MariaDB [fakeap]> select * from accounts;
 ```
 
