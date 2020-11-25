@@ -246,9 +246,9 @@ selectNetwork () {
 	                        tencr[$i]="WPA"
 	                elif [ $(echo "${tencr[$i]}" | grep "None") ]
 	                then
-	                        tencr[$i]="OPEN"
+	                        tencr[$i]="OPN"
 	                else
-	                        tencr[$i]="-----"
+	                        tencr[$i]="---"
 	                fi
 
 	                i=$(( $i + 1 ))
@@ -256,16 +256,16 @@ selectNetwork () {
 
 	        echo "WIFI NETWORKS"
 	        echo "Network interface: $interface"
-		echo "+----+-------+-------+-----------------------------------+"
-	        echo "| i  |ENCRYPT|CLIENTS|     ESSID                         |"
-	        echo "+----+-------+-------+-----------------------------------+"
+		echo "+-----+-----+---+--------------------------+"
+	        echo "|  i  | ENC |CLI|     ESSID                |"
+	        echo "+-----+-----+---+--------------------------+"
 	        i=1
 	        while [ $i -le $num ]
 	        do
-	                printf  '%-1s %-2s %-1s %-5s %-3s %-3s %-1s %-33s %-1s\n'  "|" "$i" "|" "${tencr[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
+	                printf  '%1s %-3d %1s %-3s %1s %-1d %1s %-24.24s %1s\n'  "|" "$i" "|" "${tencr[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
 	                i=$(( $i + 1 ))
 	        done
-		echo "+----+-------+-------+-----------------------------------+"
+		echo "+-----+-----+---+--------------------------+"
 	        echo
 	        read -p "Select a network [0 to repeat scann]> " network
 	done

@@ -254,7 +254,7 @@ selectNetwork () {
 	        i=1
 	        while [ $i -le $num ]
 	        do
-	                printf  '%-1s %-3s %-1s %-17s %-1s %-5s %-3s %-3s %-3s %-3s %-1s %-33s %-1s\n'  "|" "$i" "|" "${tbssid[$i]}" "|" "${tencr[$i]}" "|" "${tchannel[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
+	                printf  '%-1s %-3s %-1s %-17s %-1s %-5s %-3s %-3s %-3s %-3s %-1s %-32.32s %-1s\n'  "|" "$i" "|" "${tbssid[$i]}" "|" "${tencr[$i]}" "|" "${tchannel[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
 	                i=$(( $i + 1 ))
 	        done
 		echo "+-----+-------------------+-------+-------+-------+-----------------------------------+"
