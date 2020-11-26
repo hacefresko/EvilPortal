@@ -15,7 +15,7 @@ It has been tested in Kali (run.sh) and Raspbian (raspberry_run.sh)
 - macchanger
 - apache2
 - php7.3
-- MariaDB
+- mariaDB (mysql)
 - gnome-terminal (desktop version)
 - screen (raspberry version)
 
