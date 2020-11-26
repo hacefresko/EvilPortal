@@ -14,8 +14,10 @@ It has been tested in Kali (run.sh) and Raspbian (raspberry_run.sh)
 - hostapd
 - macchanger
 - apache2
-- gnome-terminal
-- screen (for raspberry version)
+- php7.3
+- MariaDB
+- gnome-terminal (desktop version)
+- screen (raspberry version)
 
 ## Before running the script:
 - Put the fake captive portal in directory /captive, with a similar user/password structure as the example 
