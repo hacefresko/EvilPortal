@@ -201,7 +201,7 @@ selectNetwork() {
 	do
 		read -p "Seconds to scann for networks [default is 10]> " t
 
-		rm $tempFolder/temporal-01.kismet.netxml 2>/dev/null
+		rm $tempFolder/temporal* 2>/dev/null
 
 	        screen -d -m airodump-ng -w $tempFolder/temporal --output-format netxml $interface
 
