@@ -281,7 +281,7 @@ else
 ################################ PROGRAMS NEEDED ####################################
 
 	echo "[-] Updating packages..."
-	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal macchanger mariadb-server libapache2-mod-php7.3
+	apt-get install -y hostapd dnsmasq aircrack-ng macchanger mariadb-server screen apache2 php7.3 libapache2-mod-php7.3 php7.3-mysql
 	rm -r $tempFolder 2>/dev/null
 	mkdir $tempFolder 2>/dev/null
 	echo "[+] All packages updated"
@@ -441,7 +441,7 @@ address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
 
 ################################### WEB FILES #########################################
 
-			rm -r /var/www/html/*
+			rm -r /var/www/html/* 2>/dev/null
 			cp -r captive /var/www/html/captive
 			cp .htaccess /var/www/html
 			chmod 777 /var/www/html/.htaccess
