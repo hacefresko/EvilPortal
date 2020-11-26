@@ -215,22 +215,13 @@ selectNetwork () {
 	        sleep $t
 	        pkill airodump-ng
 
-		# Parsing sometimes fails in raspbian, maybe because of the limited hardware
-		num=0
-		num2=1
-		while [ $num -ne $num2 ]
-		do
-		        begLines=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
-		        endLines=$(grep -n "</wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
+		# Parsing sometimes fails in raspbian if we omit this sleep, maybe because of the limited hardware
+		sleep 6
 
-			num=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1 | wc -l)
-			num2=$(grep -n "</wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1 | wc -l)
+	        begLines=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
+	        endLines=$(grep -n "</wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
 
-			if [ $num -ne $num2 ]
-			then
-				echo "[x] Failed to parse scan. Retrying..."
-			fi
-		done
+		num=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1 | wc -l)
 
 		i=1
                 apNum=1
