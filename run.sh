@@ -193,6 +193,8 @@ selectNetwork () {
 	do
 		read -p "Seconds to scann for networks [default is 10]> " t
 
+		rm $tempFolder/temporal* 2>/dev/null
+
 	        airodump-ng -w $tempFolder/temporal --output-format netxml $interface>/dev/null &
 
 		if [ -z $t ]
@@ -207,53 +209,54 @@ selectNetwork () {
 	        pkill airodump-ng
 
 	        num=$(grep "<wireless-network"  $tempFolder/temporal-01.kismet.netxml | wc -l)
-	        begLines=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
-	        endLines=$(grep -n "</wireless-network>" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
+		begLines=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
+		endLines=$(grep -n "</wireless-network>" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
 
-	        i=1
-	        while [ $i -le $num ]
-	        do
-	                beg=$(echo $begLines | cut -d " " -f $i)
-	                end=$(echo $endLines | cut -d " " -f $i)
-
-	                tusers[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep "</wireless-client>" | wc -l)
-	                tbssid[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep BSSID | cut -d ">" -f 2 | cut -d "<" -f 1)
-	                tessid[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep essid | cut -d ">" -f 2 | cut -d "<" -f 1)
-	                tchannel[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep channel -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
-	                tencr[$i]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep encryption -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
-
-	                if [ -z "${tessid[$i]}" ]
-	                then
-	                        tessid[$i]="Unknown"
-	                fi
-
-	                if [ $(echo "${tencr[$i]}" | grep "WPA") ]
-	                then
-	                        tencr[$i]="WPA"
-	                elif [ $(echo "${tencr[$i]}" | grep "None") ]
-	                then
-	                        tencr[$i]="OPEN"
-	                else
-	                        tencr[$i]="-----"
-	                fi
-
-	                i=$(( $i + 1 ))
-	        done
-
-	        echo "WIFI NETWORKS"
-	        echo "Network interface: $interface"
-		echo "+-----+-------------------+-------+-------+-------+-----------------------------------+"
-	        echo "|  i  |       BSSID       |ENCRYPT|CHANNEL|CLIENTS|     ESSID                         |"
-	        echo "+-----+-------------------+-------+-------+-------+-----------------------------------+"
-	        i=1
-	        while [ $i -le $num ]
-	        do
-	                printf  '%-1s %-3s %-1s %-17s %-1s %-5s %-3s %-3s %-3s %-3s %-1s %-32.32s %-1s\n'  "|" "$i" "|" "${tbssid[$i]}" "|" "${tencr[$i]}" "|" "${tchannel[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
-	                i=$(( $i + 1 ))
-	        done
-		echo "+-----+-------------------+-------+-------+-------+-----------------------------------+"
-	        echo
-	        read -p "Select a network [0 to repeat scann]> " network
+		i=1
+		apNum=1
+		while [ $i -le $num ]
+		do
+			beg=$(echo $begLines | cut -d " " -f $i)
+			end=$(echo $endLines | cut -d " " -f $i)
+			isAP=$(grep "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d "=" -f 3 | cut -d "\"" -f 2 | sed -n "$i"p)
+			if [ "$isAP" == "infrastructure" ]
+			then
+				tusers[$apNum]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep "</wireless-client>" | wc -l)
+				tbssid[$apNum]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep BSSID | cut -d ">" -f 2 | cut -d "<" -f 1)
+				tessid[$apNum]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep essid | cut -d ">" -f 2 | cut -d "<" -f 1)
+				tchannel[$apNum]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep channel -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
+				tencr[$apNum]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep encryption -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
+				if [ -z "${tessid[$apNum]}" ]
+				then
+					tessid[$apNum]="Unknown"
+				fi
+				if [ $(echo "${tencr[$apNum]}" | grep "WPA") ]
+				then
+					tencr[$apNum]="WPA"
+				elif [ $(echo "${tencr[$apNum]}" | grep "None") ]
+				then
+					tencr[$apNum]="OPEN"
+				else
+					tencr[$apNum]="-----"
+				fi
+				apNum=$(( $apNum + 1 ))
+			fi
+			i=$(( $i + 1 ))
+		done
+		echo "WIFI NETWORKS"
+		echo "Network interface: $interface"
+		echo "+-----+-------------------+-------+-------+-------+----------------------------------+"
+		echo "|  i  |       BSSID       |ENCRYPT|CHANNEL|CLIENTS|     ESSID                        |"
+		echo "+-----+-------------------+-------+-------+-------+----------------------------------+"
+		i=1
+		while [ $i -lt $apNum ]
+		do
+		    	printf  '%1s %3s %1s %-17s %1s %-5s %-3s %-3s %-3s %3s %1s %-32.32s %1s\n'  "|" "$i" "|" "${tbssid[$i]}" "|" "${tencr[$i]}" "|" "${tchannel[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
+		    	i=$(( $i + 1 ))
+		done
+		echo "+-----+-------------------+-------+-------+-------+----------------------------------+"
+		echo
+		read -p "Select a network [0 to repeat scann]> " network
 	done
 
         bssid=${tbssid[$network]}
