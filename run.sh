@@ -281,7 +281,7 @@ else
 ################################ PROGRAMS NEEDED ####################################
 
 	echo "[-] Updating packages..."
-	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal macchanger mariadb-server
+	apt-get install -y hostapd apache2 dnsmasq aircrack-ng gnome-terminal macchanger mariadb-server libapache2-mod-php7.3
 	rm -r $tempFolder 2>/dev/null
 	mkdir $tempFolder 2>/dev/null
 	echo "[+] All packages updated"
@@ -450,12 +450,10 @@ address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
 
 			cp -f override.conf /etc/apache2/conf-available/
 
-			# Enables rewrite and override for .htaccess
+			# Enables rewrite and override for .htaccess and php
 			a2enconf override
 			a2enmod rewrite
-
-			# Removes previous wireless configuration
-			rm -rf /etc/wpa_supplicant/wpa_supplicant.conf
+			a2enmod php7.3
 
 			service apache2 reload
 			service apache2 restart

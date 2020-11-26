@@ -301,7 +301,7 @@ else
 ################################ PROGRAMS NEEDED ####################################
 
 	echo "[-] Updating packages..."
-	apt-get install -y hostapd apache2 dnsmasq aircrack-ng macchanger mariadb-server screen
+	apt-get install -y hostapd apache2 dnsmasq aircrack-ng macchanger mariadb-server screen libapache2-mod-php7.3
 	rm -r $tempFolder 2>/dev/null
 	mkdir $tempFolder 2>/dev/null
 	echo "[+] All packages updated"
@@ -377,7 +377,7 @@ else
 		if [ $ok -eq 1 ]
 		then
 
-		        if [ "$encr" = "OPEN" ]
+		        if [ "$encr" = "OPN" ]
 		        then
 
 		                echo "interface=$interface
@@ -474,9 +474,10 @@ address=/#/10.0.0.1" > $tempFolder/dnsmasq.conf
 
 			cp -f override.conf /etc/apache2/conf-available/
 
-			# Enables rewrite and override for .htaccess
+			# Enables rewrite and override for .htaccess and php
 			a2enconf override
 			a2enmod rewrite
+			a2enmod php7.3
 
 			service apache2 reload
 			service apache2 restart
