@@ -20,7 +20,7 @@ titulo () {
 "
 }
 
-selectNetworkInterface () {
+selectNetworkInterface() {
 	nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
 	nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
 
@@ -105,7 +105,7 @@ selectNetworkInterface () {
 	fi
 }
 
-selectNetworkInterface2 () {
+selectNetworkInterface2() {
 	echo "[-] Configuring network interface..."
         nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
         nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
@@ -195,7 +195,7 @@ selectNetworkInterface2 () {
 
 }
 
-selectNetwork () {
+selectNetwork() {
 	network=0
 	while [ $network -eq 0 ]
 	do
@@ -296,9 +296,11 @@ else
 ################################ PROGRAMS NEEDED ####################################
 
 	echo "[-] Updating packages..."
+	echo
 	apt-get install -y hostapd dnsmasq aircrack-ng macchanger mariadb-server screen apache2 php7.3 libapache2-mod-php7.3 php7.3-mysql
 	rm -r $tempFolder 2>/dev/null
 	mkdir $tempFolder 2>/dev/null
+	echo
 	echo "[+] All packages updated"
 
 
@@ -316,8 +318,8 @@ else
 ################################# HOSTAPD CONFIG #####################################
 
 		op=-1
-	        while [ $op -lt 0 ] || [ $op -gt 2 ]
-	        do
+                while [ $op -lt 1 ] || [ $op -gt 2 ]
+                do
 	                echo
 			echo "Mode:"
 	                echo "[1] -> Create new acces point"
@@ -325,49 +327,48 @@ else
 	                read -p "> " op
 			echo
 
-	                if [ $op -lt 0 ] || [ $op -gt 2 ]
-	                then
-	                        echo "[x] Please, select a valid option: "
-	                fi
-	        done
+			case $op in
+	                1)
+	                        deauth=0
+	                        read -p "Wifi essid > " essid
+	                        read -p "Channel > " channel
+	                        echo
 
-	        if [ $op -eq 1 ]
-	        then
-	                deauth=0
-	                read -p "Wifi essid > " essid
-	                read -p "Channel > " channel
-			echo
-			op=-1
-			echo "Security: "
-	        	while [ $op -lt 0 ] || [ $op -gt 2 ]
-	        	do
-	                	echo "[1] -> Open"
-		                echo "[2] -> WPA2"
-	        	        read -p "> " op
-				echo
+				op=-1
+	                        echo "Security: "
+	                        while [ $op -lt 0 ] || [ $op -gt 2 ]
+				do
+	                                echo "[1] -> Open"
+	                                echo "[2] -> WPA2"
+	                                read -p "> " op
+	                                echo
 
-	                	if [ $op -lt 1 ] || [ $op -gt 2 ]
-	                	then
-	                        	echo "Please, select a valid option: "
-	                	fi
+	                                if [ $op -lt 1 ] || [ $op -gt 2 ]
+	                                then
+	                                	echo "Please, select a valid option: "
+	                                fi
 
-				if [ $op -eq 1 ]
-				then
-					encr="OPN"
-				else
-					encr="WPA"
-				fi
-
-	        	done
-		elif [ $op -eq 2 ]
-	        then
-	                deauth=1
-			selectNetworkInterface2 $interface
-	                if [ $ok -eq 1 ]
-			then
-				selectNetwork
-	        	fi
-		fi
+	                                if [ $op -eq 1 ]
+	                                then
+	                                        encr="OPEN"
+	                                else
+	                                	encr="WPA"
+	                        	fi
+	                        done
+	                        ;;
+			2)
+	                	deauth=1
+	                        selectNetworkInterface2 $interface
+	                        if [ $ok -eq 1 ]
+	                        then
+	                        	selectNetwork
+	                        fi
+	                        ;;
+			*)
+				echo "[x] Please, specify a valid option"
+				;;
+			esac
+		done
 
 		if [ $ok -eq 1 ]
 		then

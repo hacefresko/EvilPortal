@@ -13,7 +13,7 @@ titulo () {
 "
 }
 
-selectNetworkInterface () {
+selectNetworkInterface() {
 	nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
 	nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
 
@@ -97,7 +97,7 @@ selectNetworkInterface () {
 	fi
 }
 
-selectNetworkInterface2 () {
+selectNetworkInterface2() {
         echo "[-] Configuring network interface..."
         nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
         nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
@@ -187,7 +187,7 @@ selectNetworkInterface2 () {
 
 }
 
-selectNetwork () {
+selectNetwork() {
 	network=0
 	while [ $network -eq 0 ]
 	do
@@ -266,6 +266,79 @@ selectNetwork () {
 
 }
 
+sniffProbeRequests() {
+	request=0
+	while [ $request -eq 0 ]
+	do
+		read -p "Seconds to scann for probe requests [default is 10]> " t
+
+		rm $tempFolder/temporal* 2>/dev/null
+
+	        airodump-ng -w $tempFolder/temporal --output-format netxml $interface>/dev/null &
+
+		if [ -z $t ]
+		then
+	        	t=10
+		fi
+
+		echo
+		echo "[-] Scanning for probe requests ($t seconds)..."
+		echo
+	        sleep $t
+	        pkill airodump-ng
+
+		num=$(grep "<wireless-network"  $tempFolder/temporal-01.kismet.netxml | wc -l)
+		begLines=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
+		endLines=$(grep -n "</wireless-network>" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
+
+		i=1
+		apNum=1
+		while [ $i -le $num ]
+		do
+		        beg=$(echo $begLines | cut -d " " -f $i)
+		        end=$(echo $endLines | cut -d " " -f $i)
+		        isProbe=$(grep "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d "=" -f 3 | cut -d "\"" -f 2 | sed -n "$i"p)
+
+		        if [ "$isProbe" == "probe" ]
+		        then
+		                tClientBSSID[$apNum]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep BSSID -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
+		                tManufacturer[$apNum]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep manuf -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1 )
+		                tSSID[$apNum]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep ssid | cut -d ">" -f 2 | cut -d "<" -f 1)
+		                tchannel[$apNum]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep channel -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
+
+		                if [ -z "${tSSID[$apNum]}" ]
+		                then
+		                        tSSID[$apNum]="Unknown"
+		                fi
+
+		                if [ -z "${tManufacturer[$apNum]}" ]
+		                then
+		                        tManufacturer[$apNum]="Unknown"
+		                fi
+
+		                apNum=$(( $apNum + 1 ))
+		        fi
+		        i=$(( $i + 1 ))
+		done
+
+		echo
+		echo "PROBE REQUESTS"
+		echo "Network interface: $interface"
+		echo "+----+----------------------------------+-------------------+-------+--------------------------------------+"
+		echo "|  i |             AP SSID              |    CLIENT MAC     |CHANNEL|         CLIENT MANUFACTURER          |"
+		echo "+----+----------------------------------+-------------------+-------+--------------------------------------+"
+		i=1
+		while [ $i -lt $apNum ]
+		do
+		        printf  '%1s %2s %1s %-32.32s %1s %17s %1s %3s %3s %-36.36s %1s\n'  "|" "$i" "|" "${tSSID[$i]}" "|" "${tClientBSSID[$i]}" "|" "${tchannel[$i]}" "|" "${tManufacturer[$i]}" "|"
+		        i=$(( $i + 1 ))
+		done
+		echo "+----+----------------------------------+-------------------+-------+--------------------------------------+"
+		echo
+		read -p "[0 to repeat scann]> " request
+	done
+}
+
 deauth(){
 	iwconfig "$3" channel "$2"
         echo
@@ -303,58 +376,62 @@ else
 ################################# HOSTAPD CONFIG #####################################
 
 		op=-1
-	        while [ $op -lt 0 ] || [ $op -gt 2 ]
-	        do
-	                echo
+		while [ $op -lt 1 ] || [ $op -gt 3 ]
+		do
+		        echo
 			echo "Mode:"
-	                echo "[1] -> Create new acces point"
-	                echo "[2] -> [Evil Twin] Intercept existing access point"
-	                read -p "> " op
+		        echo "[1] -> Create new acces point"
+		        echo "[2] -> [Evil Twin] Intercept existing access point"
+		        echo "[3] -> Sniff probe requests"
+			read -p "> " op
 			echo
 
-	                if [ $op -lt 0 ] || [ $op -gt 2 ]
-	                then
-	                        echo "[x] Please, select a valid option: "
-	                fi
-	        done
+			case $op in
+				1)
+					deauth=0
+			                read -p "Wifi essid > " essid
+			                read -p "Channel > " channel
+					echo
+					op=-1
+					echo "Security: "
+			        	while [ $op -lt 0 ] || [ $op -gt 2 ]
+			        	do
+			                	echo "[1] -> Open"
+				                echo "[2] -> WPA2"
+			        	        read -p "> " op
+						echo
 
-	        if [ $op -eq 1 ]
-	        then
-	                deauth=0
-	                read -p "Wifi essid > " essid
-	                read -p "Channel > " channel
-			echo
-			op=-1
-			echo "Security: "
-	        	while [ $op -lt 0 ] || [ $op -gt 2 ]
-	        	do
-	                	echo "[1] -> Open"
-		                echo "[2] -> WPA2"
-	        	        read -p "> " op
-				echo
+			                	if [ $op -lt 1 ] || [ $op -gt 2 ]
+			                	then
+			                        	echo "Please, select a valid option: "
+			                	fi
 
-	                	if [ $op -lt 1 ] || [ $op -gt 2 ]
-	                	then
-	                        	echo "Please, select a valid option: "
-	                	fi
+						if [ $op -eq 1 ]
+						then
+							encr="OPEN"
+						else
+							encr="WPA"
+						fi
 
-				if [ $op -eq 1 ]
-				then
-					encr="OPEN"
-				else
-					encr="WPA"
-				fi
-
-	        	done
-		elif [ $op -eq 2 ]
-	        then
-	                deauth=1
-			selectNetworkInterface2 $interface
-	                if [ $ok -eq 1 ]
-			then
-				selectNetwork
-	        	fi
-		fi
+			        	done
+					;;
+				2)
+					deauth=1
+					selectNetworkInterface2 $interface
+			                if [ $ok -eq 1 ]
+					then
+						selectNetwork
+			        	fi
+					;;
+				3)
+					sniffProbeRequests
+					exit 0
+					;;
+				*)
+					echo "[x] Please, select a valid option: "
+					;;
+			esac
+		done
 
 		if [ $ok -eq 1 ]
 		then
