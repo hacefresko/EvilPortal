@@ -255,7 +255,7 @@ sniffProbeRequests() {
 	request=0
 	while [ $request -eq 0 ]
 	do
-		read -p "Seconds to scann for probe requests [default is 10]> " t
+		read -p "Seconds to scann for probe requests [default is 30]> " t
 
 		rm $tempFolder/temporal* 2>/dev/null
 
@@ -263,7 +263,7 @@ sniffProbeRequests() {
 
 		if [ -z $t ]
 		then
-	        	t=10
+	        	t=30
 		fi
 
 		echo

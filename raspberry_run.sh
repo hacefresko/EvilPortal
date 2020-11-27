@@ -3,7 +3,7 @@
 tempFolder="/tmp/evilportal"
 
 titulo () {
-	echo ""
+	echo "
 ███████╗██╗   ██╗██╗██╗
 ██╔════╝██║   ██║██║██║
 █████╗  ██║   ██║██║██║
@@ -249,7 +249,7 @@ selectNetwork() {
 		i=1
 		while [ $i -lt $apNum ]
 		do
-		    	printf  '%1s %-3s %1s %-3s %1s %-1s $1s %-24.24s %1s\n'  "|" "$i" "|" "${tencr[$i]}" "|" "${tencr[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
+		    	printf  '%1s %-3s %1s %-3s %1s %-1s %1s %-24.24s %1s\n'  "|" "$i" "|" "${tencr[$i]}" "|" "${tusers[$i]}" "|" "${tessid[$i]}" "|"
 		    	i=$(( $i + 1 ))
 		done
 		echo "+-----+-----+---+--------------------------+"
@@ -268,7 +268,7 @@ sniffProbeRequests() {
 	request=0
 	while [ $request -eq 0 ]
 	do
-		read -p "Seconds to scann for probe requests [default is 10]> " t
+		read -p "Seconds to scann for probe requests [default is 30]> " t
 
 		rm $tempFolder/temporal* 2>/dev/null
 
@@ -276,7 +276,7 @@ sniffProbeRequests() {
 
 		if [ -z $t ]
 		then
-	        	t=10
+	        	t=30
 		fi
 
 		echo
@@ -331,7 +331,7 @@ sniffProbeRequests() {
 		i=1
 		while [ $i -lt $apNum ]
 		do
-		        printf  '%1s %2s %1s %-18.18s %1s %17.17s %1s\n'  "|" "$i" "|" "${tSSID[$i]}" "|" "${tManufacturer[$i]}" "|"
+		        printf  '%1s %2s %1s %-19.19s %1s %17.17s %1s\n'  "|" "$i" "|" "${tSSID[$i]}" "|" "${tManufacturer[$i]}" "|"
 		        i=$(( $i + 1 ))
 		done
 		echo "+----+--------------------+--------------------+"
@@ -571,8 +571,9 @@ then
 			pkill aireplay-ng
 			;;
 		*)
-			echo "[x]Please, select a valid option"
+			echo "[x] Please, select a valid option"
 			;;
+		esac
 	done
 fi
 
@@ -596,6 +597,6 @@ do
 		pkill dnsmasq
 	elif [ $op -le 0 ] || [ $op -ge 3 ]
 	then
-		echo "[x]Please, select a valid option"
+		echo "[x] Please, select a valid option"
 	fi
 done
