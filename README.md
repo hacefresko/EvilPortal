@@ -89,3 +89,11 @@ MariaDB [fakeap]> select * from accounts;
   to our fake captive portal login page (mod_rewrite). With this method, Samsung devices are
   not affected as they use a different captive portal detection system, involving Internet 
   connection.
+  
+  
+# Disclaimer
+This tool was made for learning purposes and security testing of my own networks.
+Please, do not use without the consent of the WiFi/devices owners or any other illegal
+activities.
+  
+
