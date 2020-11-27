@@ -16,8 +16,8 @@ titulo () {
 ██╔═══╝ ██║   ██║██╔══██╗   ██║   ██╔══██║██║
 ██║     ╚██████╔╝██║  ██║   ██║   ██║  ██║███████╗
 ╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝
-
 "
+	echo
 }
 
 selectNetworkInterface() {
@@ -187,7 +187,7 @@ selectNetwork() {
 
 		rm $tempFolder/temporal* 2>/dev/null
 
-	        airodump-ng -w $tempFolder/temporal --output-format netxml $interface>/dev/null &
+		screen -d -m airodump-ng -w $tempFolder/temporal --output-format netxml $interface>/dev/null &
 
 		if [ -z $t ]
 		then
@@ -272,7 +272,7 @@ sniffProbeRequests() {
 
 		rm $tempFolder/temporal* 2>/dev/null
 
-	        airodump-ng -w $tempFolder/temporal --output-format netxml $interface>/dev/null &
+	        screen -d -m airodump-ng -w $tempFolder/temporal --output-format netxml $interface>/dev/null &
 
 		if [ -z $t ]
 		then
