@@ -37,7 +37,7 @@ MariaDB [fakeap]> select * from accounts;
 
 ## How does it work:
 
-[Option 1] Create new access point (1 network interface with monitor mode needed)
+- **Option 1**: Create new access point (1 network interface with monitor mode needed)
 
 1. Creates new access point with hostapd
 
@@ -47,8 +47,8 @@ MariaDB [fakeap]> select * from accounts;
    by sending a GET request to some of the default pages such as 
    connectivitycheck.gstatic.com/generate_204 and gets redirected to the captive portal *
 		   
-		   
-[Option 2] (Evil Twin) Intercept existing access point (2 network interface with monitor mode needed)
+
+- **Option 2**: (Evil Twin) Intercept existing access point (2 network interface with monitor mode needed)
 
 1. Selects existing access point
 		
@@ -64,7 +64,7 @@ MariaDB [fakeap]> select * from accounts;
    connectivitycheck.gstatic.com/generate_204 and gets redirected to the captive portal *
 
 
-[Option 3] (Karma) Create access point recogniced by the victim (1 network interface with monitor mode needed)
+- **Option 3**: (Karma) Create access point recogniced by the victim (1 network interface with monitor mode needed)
 
 1. Sniffs probe requests containing the ESSID of the access points which free devices have recently been
    conneceted and are willing to connect now
