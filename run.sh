@@ -139,7 +139,7 @@ selectNetworkInterface2() {
 
                 tempInterface=${interface[$op]}
                 substring=$(echo $tempInterface | grep "mon")
-                if [ -x $substring ]
+                if [ $substring ]
                 then
                         interface2="$tempInterface"
                 else
