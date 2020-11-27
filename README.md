@@ -2,8 +2,8 @@
 
 EvilPortal is a script to perform phishing attacks through captive portals.
 
-It can perform various techniques such as Evil Twin or Karma attack, to prompt captive portals
-among users connected to the acces point.
+It can perform various techniques, such as Evil Twin or Karma, to prompt captive portals
+among users who connect to the access point.
 
 It has been tested in Kali (run.sh) and Raspbian (raspberry_run.sh)
 
@@ -64,7 +64,7 @@ MariaDB [fakeap]> select * from accounts;
    connectivitycheck.gstatic.com/generate_204 and gets redirected to the captive portal *
 
 
-[ Option 3] (Karma) Create access point recogniced by the victim
+[Option 3] (Karma) Create access point recogniced by the victim (1 network interface with monitor mode needed)
 
 1. Sniffs probe requests containing the ESSID of the access points which free devices have recently been
    conneceted and are willing to connect now
