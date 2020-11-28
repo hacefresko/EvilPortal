@@ -342,7 +342,7 @@ selectEncryption(){
 		fi
 		if [ $op -eq 1 ]
 		then
-			encr="OPEN"
+			encr="OPN"
 		else
 			encr="WPA"
 		fi
@@ -424,7 +424,7 @@ do
 	esac
 done
 
-if [ "$encr" = "OPEN" ]
+if [ "$encr" = "OPN" ]
 then
 
 	echo "interface=$interface
