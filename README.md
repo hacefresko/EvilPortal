@@ -9,6 +9,7 @@ It has been tested in Kali (run.sh) and Raspbian (raspberry_run.sh)
 
 ## Programs used: 
 - airmon-ng
+- tcpdump
 - dnsmasq
 - hostapd
 - macchanger

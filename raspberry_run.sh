@@ -265,59 +265,59 @@ selectNetwork() {
 }
 
 sniffProbeRequests() {
-        trap "stop=1; pkill tcpdump" SIGINT
+	trap "stop=1; pkill tcpdump" SIGINT
 
-        tcpdump -l -e -i $interface type mgt subtype probe-req>$tempFolder/tcpdump.log 2>/dev/null &
+	tcpdump -l -e -i $interface type mgt subtype probe-req>$tempFolder/tcpdump.log 2>/dev/null &
 
-        echo
-        echo "PROBE REQUESTS [^C to stop]"
-        stop=0
-        requests=0
-        numProbes=1
-        while [ $stop -ne 1 ]
-        do
-                num=$(wc -l $tempFolder/tcpdump.log | cut -d " " -f 1)
-                while [ $requests -lt $num ]
-                do
-                        requests=$(( $requests + 1 ))
+	echo
+	echo "PROBE REQUESTS [^C to stop]"
+	stop=0
+	requests=0
+	numProbes=1
+	while [ $stop -ne 1 ]
+	do
+		num=$(wc -l $tempFolder/tcpdump.log | cut -d " " -f 1)
+		while [ $requests -lt $num ]
+		do
+			requests=$(( $requests + 1 ))
 
-                        clientProv=$(grep -oE "([0-9a-f]{2}:){5}[0-9a-f]{2}" $tempFolder/tcpdump.log | sed -n "$requests"p)
-                        apProv=$(cut -d "(" -f 3 $tempFolder/tcpdump.log | cut -d ")" -f 1 | sed -n "$requests"p)
+			clientProv=$(grep -oE "([0-9a-f]{2}:){5}[0-9a-f]{2}" $tempFolder/tcpdump.log | sed -n "$requests"p)
+			apProv=$(cut -d "(" -f 3 $tempFolder/tcpdump.log | cut -d ")" -f 1 | sed -n "$requests"p)
 
-                        if [ $apProv ]
-                        then
-                                i=1
-                                found=0
-                                while [ $i -lt $numProbes ]
-                                do
-                                        if [ "$apProv" == "${ap[$i]}" ]
-                                        then
-                                                found=1
-                                        fi
-                                        i=$(( $i + 1))
-                                done
+			if [ $apProv ]
+			then
+				i=1
+				found=0
+				while [ $i -lt $numProbes ]
+				do
+					if [ "$apProv" == "${ap[$i]}" ]
+					then
+						found=1
+					fi
+					i=$(( $i + 1))
+				done
 
-                                if [ $found -eq 0 ]
-                                then
-                                        client[$numProbes]=$clientProv
-                                        ap[$numProbes]=$apProv
+				if [ $found -eq 0 ]
+				then
+					client[$numProbes]=$clientProv
+					ap[$numProbes]=$apProv
 
-                                        echo "[$numProbes] ${client[$numProbes]} -> ${ap[$numProbes]}"
+					echo "[$numProbes] ${client[$numProbes]} -> ${ap[$numProbes]}"
 
-                                        numProbes=$(( $numProbes + 1 ))
-                                fi
-                        fi
-                done
-                sleep 1
-        done
+					numProbes=$(( $numProbes + 1 ))
+				fi
+			fi
+		done
+		sleep 1
+	done
 
-        # Restore SIGINT
-        trap exit SIGINT
+	#Restore SIGINT
+	trap exit SIGINT
 
-        echo
-        read -p "Select probe request > " op
+	echo
+	read -p "Select probe request > " op
 
-        essid=${ap[$op]}
+	essid=${ap[$op]}
 }
 
 selectEncryption(){
@@ -364,7 +364,7 @@ fi
 
 echo "[-] Updating packages..."
 echo
-apt-get install -y hostapd dnsmasq aircrack-ng macchanger mariadb-server screen apache2 php7.3 libapache2-mod-php7.3 php7.3-mysql
+apt-get install -y hostapd dnsmasq aircrack-ng macchanger mariadb-server screen apache2 php7.3 libapache2-mod-php7.3 php7.3-mysql tcpdump
 rm -r $tempFolder 2>/dev/null
 mkdir $tempFolder 2>/dev/null
 echo
