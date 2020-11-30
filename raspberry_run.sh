@@ -300,7 +300,7 @@ sniffProbeRequests() {
 			clientProv=$(grep -oE "([0-9a-f]{2}:){5}[0-9a-f]{2}" $tempFolder/tcpdump.log | sed -n "$requests"p)
 			apProv=$(cut -d "(" -f 3 $tempFolder/tcpdump.log | cut -d ")" -f 1 | sed -n "$requests"p)
 
-			if [ $apProv ]
+			if [ "$apProv" ]
 			then
 				i=1
 				found=0
