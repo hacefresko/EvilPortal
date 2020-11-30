@@ -34,6 +34,7 @@ selectNetworkInterface(){
 			iwconfig $interface mode monitor
 			ifconfig $interface up
 			status=$(iwconfig 2>/dev/null | grep -o "Monitor")
+			echo "[-] Status: $status"
 			if [ "$status" != "Monitor" ]
 			then
 				echo "[x] Network interface couldn't be put in monitor mode"
@@ -76,6 +77,7 @@ selectNetworkInterface(){
 			iwconfig $interface mode monitor
 			ifconfig $interface up
 			status=$(iwconfig 2>/dev/null | grep $interface | grep -o "Monitor")
+			echo "[-] Status: $status"
 			if [ "$status" != "Monitor" ]
 			then
 				echo "[x] Network interface couldn't be put in monitor mode"
@@ -123,6 +125,7 @@ selectNetworkInterface2() {
 			iwconfig $interface2 mode monitor
 			ifconfig $interface2 up
 			status=$(iwconfig 2>/dev/null | grep $interface2 | grep -o "Monitor")
+			echo "[-] Status: $status"
 			if [ "$status" != "Monitor" ]
 			then
 				echo "[x] Network interface couldn't be put in monitor mode"
@@ -169,6 +172,7 @@ selectNetworkInterface2() {
 			iwconfig $interface2 mode monitor
 			ifconfig $interface2 up
 			status=$(iwconfig 2>/dev/null | grep $interface2 | grep -o "Monitor")
+			echo "[-] Status: $status"
 			if [ "$status" != "Monitor" ]
 			then
 				echo "[x] Network interface couldn't be put in monitor mode"
