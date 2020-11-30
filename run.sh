@@ -13,61 +13,66 @@ titulo () {
 "
 }
 
-selectNetworkInterface() {
-	nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
-	nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
+selectNetworkInterface(){
+	nInterfaces=$(iwconfig 2>/dev/null | grep -oE "wlan[0-9]" | wc -l)
+	nMonInterfaces=$(iwconfig 2>/dev/null | grep -o "Monitor" | wc -l)
 
 	if [ $nInterfaces -eq 1 ]
 	then
 		echo "[-] Configuring network interface..."
 		if [ $nMonInterfaces -eq 0 ]
 		then
-                        tempInterface=$(airmon-ng | grep -oiE 'wlan[0-9]')
-                        tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
-                        if [ "$tempStatus" != "enabled" ]
-                        then
-			        echo "[x] Network interface couldn't be put in monitor mode"
-                        	exit -1
-			else
-				interface="$tempInterface"mon
+			interface=$(iwconfig 2>/dev/null | grep -oE 'wlan[0-9]')
+			ifconfig $interface down
+			iwconfig $interface mode monitor
+			ifconfig $interface up
+			status=$(iwconfig 2>/dev/null | grep -o "Monitor")
+			if [ "$status" != "Monitor" ]
+			then
+				echo "[x] Network interface couldn't be put in monitor mode"
+				exit -1
 			fi
 		else
-			interface=$(airmon-ng | grep -oiE 'wlan[0-9]mon')
+			interface=$(iwconfig 2>/dev/null | grep -oE 'wlan[0-9]')
 		fi
 	elif [ $nInterfaces -gt 1 ]
 	then
 		echo
 		echo "Network interfaces:"
 		echo
-		line=4
 		i=1
 
-		interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
+		interface[$i]=$(iwconfig 2>/dev/null | grep -oE "wlan[0-9]" | sed -n "$i"p)
+		status[$i]=$(iwconfig 2>/dev/null | grep -E "wlan[0-9]" | sed -n "$i"p | grep -o "Monitor")
 		while [ ${interface[$i]} ]
 		do
-			printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
-			line=$(( $line + 1 ))
-                       	i=$(( $i + 1 ))
-			interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
+			if [ ${status[$i]} ]
+			then
+				echo "[$i] -> ${interface[$i]} (${status[$i]})"
+			else
+				echo "[$i] -> ${interface[$i]}"
+			fi
+			i=$(( $i + 1 ))
+			interface[$i]=$(iwconfig 2>/dev/null | grep -oE "wlan[0-9]" | sed -n "$i"p)
+			status[$i]=$(iwconfig 2>/dev/null | grep -E "wlan[0-9]" | sed -n "$i"p | grep -o "Monitor")
 		done
 		echo
 		echo -n "Select a network interface > "
 		read op
 		echo
-		echo "[-] Configuring netwrok interface..."
-		tempInterface=${interface[$op]}
-		substring=$(echo $tempInterface | grep "mon")
-		if [ $substring ]
+		echo "[-] Configuring network interface..."
+		interface=${interface[$op]}
+		status=${status[$op]}
+		if [ -z $status ]
 		then
-			interface="$tempInterface"
-		else
-			tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
-			if [ "$tempStatus" != "enabled" ]
+			ifconfig $interface down
+			iwconfig $interface mode monitor
+			ifconfig $interface up
+			status=$(iwconfig 2>/dev/null | grep $interface | grep -o "Monitor")
+			if [ "$status" != "Monitor" ]
 			then
-				echo "[x] Selected network interface couldn't be put in monitor mode"
+				echo "[x] Network interface couldn't be put in monitor mode"
 				exit -1
-			else
-				interface="$tempInterface"mon
 			fi
 		fi
 	else
@@ -90,73 +95,84 @@ selectNetworkInterface() {
 	echo
 }
 
+# It accept as a param the first network interface
 selectNetworkInterface2() {
-        echo "[-] Configuring network interface..."
-        nInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]' | wc -l)
-        nMonInterfaces=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | wc -l)
+	nInterfaces=$(iwconfig 2>/dev/null | grep -oE "wlan[0-9]" | wc -l)
+	nMonInterfaces=$(iwconfig 2>/dev/null | grep -o "Monitor" | wc -l)
 
-        if [ $nInterfaces -eq 2 ]
-        then
-                if [ $nMonInterfaces -eq 1 ]
-                then
-                        tempInterface=$(airmon-ng | grep -oiwE 'wlan[0-9]')
-                        tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
-                        if [ "$tempStatus" != "enabled" ]
-                        then
-                                echo "[x] Network interface couldn't be put in monitor mode"
+	if [ $nInterfaces -eq 2 ]
+	then
+		echo "[-] Configuring network interface..."
+		if [ $nMonInterfaces -eq 1 ]
+		then
+			monInterface=$(iwconfig 2>/dev/null | grep "Monitor" | grep -oE "wlan[0-9]" )
+			interface2=$(iwconfig 2>/dev/null | grep -oE "wlan[0-9]" | sed -n 1p)
+			if [ "$interface2" == "$monInterface" ]
+			then
+				interface2=$(iwconfig 2>/dev/null | grep -oE "wlan[0-9]" | sed -n 2p)
+			fi
+
+			ifconfig $interface2 down
+			iwconfig $interface2 mode monitor
+			ifconfig $interface2 up
+			status=$(iwconfig 2>/dev/null | grep $interface2 | grep -o "Monitor")
+			if [ "$status" != "Monitor" ]
+			then
+				echo "[x] Network interface couldn't be put in monitor mode"
 				exit -1
-                        else
-                                interface2="$tempInterface"mon
-                        fi
-                else
-                        interface2=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | sed -n 1p)
-                        if [ "$1" == "$interface2" ]
-                        then
-                                interface2=$(airmon-ng | grep -oiE 'wlan[0-9]mon' | sed -n 2p)
-                        fi
-                fi
-        elif [ $nInterfaces -ge 3 ]
-        then
-                echo
-                echo "Network interfaces:"
-                echo
-                line=4
-                i=1
+			fi
+		else
+			interface2=$(iwconfig 2>/dev/null | grep -oE "wlan[0-9]" | sed -n 1p)
+			if [ "$1" == "$interface2" ]
+			then
+				interface2=$(iwconfig 2>/dev/null | grep -oE "wlan[0-9]" | sed -n 2p)
+			fi
+		fi
+	elif [ $nInterfaces -ge 3 ]
+	then
+		echo
+		echo "Network interfaces:"
+		echo
+		i=1
 
-                interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
-                while [ ${interface[$i]} ]
-                do
-                        printf '%-4s %-4s %-10s\n' "[$i]" " -> " "${interface[$i]}"
-                        line=$(( $line + 1 ))
-                        i=$(( $i + 1 ))
-                	interface[$i]=$(airmon-ng | sed -n "$line"p | cut -d "	" -f 2)
+		interface[$i]=$(iwconfig 2>/dev/null | grep -oE "wlan[0-9]" | sed -n "$i"p)
+		status[$i]=$(iwconfig 2>/dev/null | grep -E "wlan[0-9]" | sed -n "$i"p | grep -o "Monitor")
+		while [ ${interface[$i]} ]
+		do
+			if [ ${status[$i]} ]
+			then
+				echo "[$i] -> ${interface[$i]} (${status[$i]})"
+			else
+				echo "[$i] -> ${interface[$i]}"
+			fi
+			i=$(( $i + 1 ))
+			interface[$i]=$(iwconfig 2>/dev/null | grep -oE "wlan[0-9]" | sed -n "$i"p)
+			status[$i]=$(iwconfig 2>/dev/null | grep -E "wlan[0-9]" | sed -n "$i"p | grep -o "Monitor")
 		done
-                echo
-                echo -n "Select a network interface > "
-                read op
-                echo
-                echo "[-] Configuring network interface..."
-
-                tempInterface=${interface[$op]}
-                substring=$(echo $tempInterface | grep "mon")
-                if [ $substring ]
-                then
-                        interface2="$tempInterface"
-                else
-                        tempStatus=$(airmon-ng start $tempInterface | grep -o enabled)
-                        if [ "$tempStatus" != "enabled" ]
-                        then
-                                echo "[x] Selected network interface couldn't be put in monitor mode"
-                                exit -1
-                        else
-                                interface2="$tempInterface"mon
-                        fi
-                fi
-        else
-                echo "[x] Not enough network interfaces found (2)"
-                echo
+		echo
+		echo -n "Select a network interface > "
+		read op
+		echo
+		echo "[-] Configuring network interface..."
+		interface2=${interface[$op]}
+		status=${status[$op]}
+		if [ -z $status ]
+		then
+			ifconfig $interface2 down
+			iwconfig $interface2 mode monitor
+			ifconfig $interface2 up
+			status=$(iwconfig 2>/dev/null | grep $interface2 | grep -o "Monitor")
+			if [ "$status" != "Monitor" ]
+			then
+				echo "[x] Network interface couldn't be put in monitor mode"
+				exit -1
+			fi
+		fi
+	else
+		echo "[x] Not enough network interfaces found (2)"
+		echo
 		exit -1
-        fi
+	fi
 
 	echo "[-] Upgrading network interface..."
 	ifconfig $interface2 down
