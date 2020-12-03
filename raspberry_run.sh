@@ -31,7 +31,7 @@ selectNetworkInterface(){
 		then
 			interface=$(iwconfig 2>/dev/null | grep -oE 'wlan[0-9]')
 			ifconfig $interface down
-			iwconfig $interface mode monitor
+			iw $interface set type monitor
 			ifconfig $interface up
 			status=$(iwconfig 2>/dev/null | grep -o "Monitor")
 			echo "[-] Status: $status"
@@ -74,7 +74,7 @@ selectNetworkInterface(){
 		if [ -z $status ]
 		then
 			ifconfig $interface down
-			iwconfig $interface mode monitor
+			iw $interface set type monitor
 			ifconfig $interface up
 			status=$(iwconfig 2>/dev/null | grep $interface | grep -o "Monitor")
 			echo "[-] Status: $status"
@@ -122,7 +122,7 @@ selectNetworkInterface2() {
 			fi
 
 			ifconfig $interface2 down
-			iwconfig $interface2 mode monitor
+			iw $interface set type monitor
 			ifconfig $interface2 up
 			status=$(iwconfig 2>/dev/null | grep $interface2 | grep -o "Monitor")
 			echo "[-] Status: $status"
@@ -169,7 +169,7 @@ selectNetworkInterface2() {
 		if [ -z $status ]
 		then
 			ifconfig $interface2 down
-			iwconfig $interface2 mode monitor
+			iw $interface set type monitor
 			ifconfig $interface2 up
 			status=$(iwconfig 2>/dev/null | grep $interface2 | grep -o "Monitor")
 			echo "[-] Status: $status"
