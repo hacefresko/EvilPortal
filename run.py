@@ -170,8 +170,8 @@ class networkInterfaces:
         f.write(dnsmasqConfig)
         f.close
 
-        # Configures dnsmasq to assign the interface ip to the domain name so mod_rewrite
-        # (.htaccess) can reffer directly to the domain name in the URL
+        # Configures dnsmasq to assign the interface ip to the domain name so 
+        # mod_rewrite  from .htaccess can reffer directly to the domain name in the URL
         f = open(os.path.join(tempFolder, dnsmasqHostsFile), 'w')
         f.write('10.0.0.1 wifiportal2.aire.es')
         f.close()
@@ -235,7 +235,6 @@ class networkInterfaces:
                     
                     if not inList:
                         probeRequests.append(newProbeRequest)
-                        #print(probeRequests)
                         print('[' + str(len(probeRequests)) + '] ' + client.group() + ' -> ' + ap[1])
 
             time.sleep(1)
@@ -252,6 +251,91 @@ class networkInterfaces:
                 print('[x] Input out of bounds!')
             else:
                 return probeRequests[probeRequest]
+
+    def sniffAccessPoints(self, nInterface, sigint_handler):
+        tcpdumpLogFile = 'tcpdump.log'
+        tcpdumpFD = 0
+        accessPoints = []
+
+        if type(nInterface) is not int:
+            print('[x] Input value is not an integer!\n')
+            return -1
+
+        if nInterface < 0 or nInterface >= len(self.interfaces):
+            print('[x] Input value out of bounds!\n')
+            return -1
+
+        # We need to create the file before reading it, as tcpdump
+        # may delay a few miliseconds until it creates it it self
+        f = open(os.path.join(tempFolder, tcpdumpLogFile), 'w+')
+        f.close()
+
+        os.system('tcpdump -l -e -i' + self.interfaces[nInterface]['name'] + ' type mgt subtype beacon >' + os.path.join(tempFolder, tcpdumpLogFile) + ' 2>&1 &')
+
+        tcpdumpFD = open(os.path.join(tempFolder, tcpdumpLogFile), 'r')
+
+        # stop is defined as global for the sigint handler to be able to get it
+        global stop
+        stop = False
+
+        def sigint_handler_probe(sig, frame):
+            global stop
+            stop = True
+            signal.signal(signal.SIGINT, sigint_handler)
+        
+        signal.signal(signal.SIGINT, sigint_handler_probe)
+
+        print('WIFI ACCESS POINTS (Ctrl C to stop)')
+        while not stop:
+            line = tcpdumpFD.readline()
+            if line:
+                bssid = re.search(r'([0-9a-f]{2}:){5}[0-9a-f]{2}', line)
+                ssid = re.findall(r'[(](.+?)[)]', line)
+                if bssid and len(ssid) == 3:
+                    newAccessPoint = {'bssid' : bssid.group(), 'ssid' : ssid[2]}
+                    try:
+                        accessPoints.index(newAccessPoint)
+                        inList = True
+                    except ValueError:
+                        inList = False
+                    
+                    if not inList:
+                        accessPoints.append(newAccessPoint)
+                        print('[' + str(len(accessPoints)) + '] ' + bssid.group() + ' -> ' + ssid[2])
+
+            # If not paused, python3 would consume a crazy amount of resources
+            time.sleep(0.05)
+
+        tcpdumpFD.close()
+        os.system('pkill tcpdump')
+        print()
+
+
+def configWebApp():
+    # Config captive portal files
+    print('[-] Copying web files...')
+    os.system('rm -r /var/www/html/* 2>/dev/null')
+    os.system('cp -r captive /var/www/html/captive')
+    os.system('cp .htaccess /var/www/html')
+    os.system('chmod 755 /var/www/html/.htaccess')
+    os.system('chmod 755 /var/www/html/captive')
+    os.system('chmod 755 /var/www/html/captive/*')
+    print('[+] Web files copied succesfuly')
+
+    # Enable rewrite and override for .htaccess and php
+    print('[-] Configuring apache2...\n')
+    os.system('cp -f override.conf /etc/apache2/conf-available/')
+    os.system('a2enconf override')
+    os.system('a2enmod rewrite')
+    os.system('a2enmod php7.3')
+
+    # Reload/restart apache2 and start mysql (mariaDB)
+    os.system('service apache2 reload')
+    os.system('service apache2 restart')
+    print('\n[+] apache2 configured succesfuly')
+    print('[-] Configuring mysql...')
+    os.system('service mysql start')
+    print('[+] mysql configured succesfuly')
 
 # We define the file descriptors for hostapd log file and dnsmasq log file
 # as global in order for the sigint handler to be able to get them
@@ -336,7 +420,6 @@ while op < 1 or op > 3:
     print()
 
     if op == 1:
-        deauth = False
         ssid = input('WiFi SSID > ')
         channel = input('Channel > ')
 
@@ -354,11 +437,20 @@ while op < 1 or op > 3:
                 encryption = "WPA2"
         print()
 
+        # Launch hostapd
+        networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
+
+        # Launch dnsmasq
+        networkInterfaces.launchDnsmasq(interface)
+
+        # Config web app
+        configWebApp()
+
     elif op == 2:
-        deauth = True
+        networkInterfaces.sniffAccessPoints(interface, sigint_handler)
+        quit()
 
     elif op == 3:
-        deauth = False
         probeRequest = networkInterfaces.sniffProbeReq(interface, sigint_handler)
         ssid = probeRequest['ap']
         channel = input('Channel > ')
@@ -377,39 +469,17 @@ while op < 1 or op > 3:
                 encryption = "WPA2"
         print()
 
+        # Launch hostapd
+        networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
+
+        # Launch dnsmasq
+        networkInterfaces.launchDnsmasq(interface)
+
+        # Config web app
+        configWebApp()
 
     else:
         print('[x] Input value out of bounds!\n')
-
-
-# Launch hostapd
-networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
-
-# Launch dnsmasq
-networkInterfaces.launchDnsmasq(interface)
-
-# Config captive portal files
-os.system('rm -r /var/www/html/* 2>/dev/null')
-os.system('cp -r captive /var/www/html/captive')
-os.system('cp .htaccess /var/www/html')
-os.system('chmod 755 /var/www/html/.htaccess')
-os.system('chmod 755 /var/www/html/captive')
-os.system('chmod 755 /var/www/html/captive/*')
-
-# Enable rewrite and override for .htaccess and php
-print('[-] Configuring apache2...\n')
-os.system('cp -f override.conf /etc/apache2/conf-available/')
-os.system('a2enconf override')
-os.system('a2enmod rewrite')
-os.system('a2enmod php7.3')
-
-# Reload/restart apache2 and start mysql (mariaDB)
-os.system('service apache2 reload')
-os.system('service apache2 restart')
-print('\n[+] apache2 configured succesfuly')
-print('[-] Configuring mysql...')
-os.system('service mysql start')
-print('[+] mysql configured succesfuly')
 
 # Print hostapd + dnsmasq
 hostapdFD = open(os.path.join(tempFolder, networkInterfaces.hostapdLogFile), 'r')
