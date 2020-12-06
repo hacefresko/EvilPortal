@@ -152,51 +152,25 @@ class networkInterfaces:
         # Stop dnsmasq daemon in case it's active
         os.system('service dnsmasq stop')
 
-        # Check connection
-        print('[-] Checking for Internet connection...')
-        try:
-            requests.get('https://google.com')
-            conex = True
-            print('[+] Internet connection available')
-        except:
-            conex = False
-            print('[x] Internet connection not available: Samsung devices won\'t connect')
-
         # Config dnsmasq
         dnsmasqConfig = ''
         dnsmasqConfigFile = 'dnsmasq.conf'
         dnsmasqHostsFile = 'hosts'
 
         print('[-] Configuring dnsmasq...')
-        if conex:
-            dnsmasqConfig += 'interface=' + interface + '\n'
-            dnsmasqConfig += 'dhcp-range=10.0.0.10,10.0.0.250,255.255.255.0,12h\n'
-            dnsmasqConfig += 'dhcp-option=3,10.0.0.1\n'
-            dnsmasqConfig += 'dhcp-option=6,10.0.0.1\n'
-            dnsmasqConfig += 'log-queries\n'
-            dnsmasqConfig += 'listen-address=127.0.0.1\n'
 
-            # iptables configuration only if machine has connection
-            # We redirect to 10.0.0.1:80 everything going to port 80 of this machine
-            os.system('iptables -t nat -A PREROUTING -p tcp --dport 80 -j DNAT --to-destination 10.0.0.1:80')
-
-            # Everything going out this machine goes by eth0 and masqued
-            os.system('iptables -t nat -A POSTROUTING --out-interface eth0 -j MASQUERADE')
-
-        else:
-            dnsmasqConfig += 'interface=' + interface + '\n'
-            dnsmasqConfig += 'dhcp-range=10.0.0.10,10.0.0.250,255.255.255.0,12h\n'
-            dnsmasqConfig += 'dhcp-option=3,10.0.0.1\n'
-            dnsmasqConfig += 'dhcp-option=6,10.0.0.1\n'
-            dnsmasqConfig += 'log-queries\n'
-            dnsmasqConfig += 'listen-address=127.0.0.1\n'
-            dnsmasqConfig += 'address=/#/10.0.0.1\n'
+        dnsmasqConfig += 'interface=' + interface + '\n'                        # Interface in which dnsmasq listen
+        dnsmasqConfig += 'dhcp-range=10.0.0.10,10.0.0.250,255.255.255.0,12h\n'  # Range of IPs to set to clients for the DHCP server
+        dnsmasqConfig += 'dhcp-option=3,10.0.0.1\n'                             # Set router to 10.0.0.1
+        dnsmasqConfig += 'dhcp-option=6,10.0.0.1\n'                             # Set dns server to 10.0.0.1
+        dnsmasqConfig += 'log-queries\n'                                        # Log all queries
+        dnsmasqConfig += 'address=/#/10.0.0.1\n'                                # Response to every DNS query with 10.0.0.1 (where our captive portal is)
 
         f = open(os.path.join(tempFolder, dnsmasqConfigFile), 'w')
         f.write(dnsmasqConfig)
         f.close
 
-        # Configures dnsmasq to assign the interface ip with the domain name so mod_rewrite
+        # Configures dnsmasq to assign the interface ip to the domain name so mod_rewrite
         # (.htaccess) can reffer directly to the domain name in the URL
         f = open(os.path.join(tempFolder, dnsmasqHostsFile), 'w')
         f.write('10.0.0.1 wifiportal2.aire.es')
