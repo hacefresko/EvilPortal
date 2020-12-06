@@ -173,7 +173,6 @@ class networkInterfaces:
             dnsmasqConfig += 'dhcp-range=10.0.0.10,10.0.0.250,255.255.255.0,12h\n'
             dnsmasqConfig += 'dhcp-option=3,10.0.0.1\n'
             dnsmasqConfig += 'dhcp-option=6,10.0.0.1\n'
-            dnsmasqConfig += 'server=8.8.8.8\n'
             dnsmasqConfig += 'log-queries\n'
             dnsmasqConfig += 'listen-address=127.0.0.1\n'
 
@@ -189,7 +188,6 @@ class networkInterfaces:
             dnsmasqConfig += 'dhcp-range=10.0.0.10,10.0.0.250,255.255.255.0,12h\n'
             dnsmasqConfig += 'dhcp-option=3,10.0.0.1\n'
             dnsmasqConfig += 'dhcp-option=6,10.0.0.1\n'
-            dnsmasqConfig += 'server=8.8.8.8\n'
             dnsmasqConfig += 'log-queries\n'
             dnsmasqConfig += 'listen-address=127.0.0.1\n'
             dnsmasqConfig += 'address=/#/10.0.0.1\n'
