@@ -96,37 +96,30 @@ class networkInterfaces:
         interface = self.interfaces[nInterface]['name']
         
         # Hostapd configuration
-        hostapdConfig = ''
+        print('[-] Configuring hostapd...')
         hostapdConfigFile = 'hostapd.conf'
 
-        print('[-] Configuring hostapd...')
+        hostapdConfig += 'interface=' + interface + '\n'        # Interface used
+        hostapdConfig += 'driver=nl80211\n'                     # Driver interface typr
+        hostapdConfig += 'ssid=' + ssid + '\n'                  # SSID
+        hostapdConfig += 'hw_mode=g\n'                          # Hardware mode (802.11g)
+        hostapdConfig += 'channel=' + channel + '\n'            # Channel
+        hostapdConfig += 'macaddr_acl=0\n'                      # Station MAC address -based auth (0 = accept unless in deny list)
+        hostapdConfig += 'ignore_broadcast_ssid=0\n'            # Require stations to know SSID to connect (ignore probe requests without full SSID)
+
         if encryption == 'OPEN':
-            hostapdConfig += 'interface=' + interface + '\n'
-            hostapdConfig += 'driver=nl80211\n'
-            hostapdConfig += 'ssid=' + ssid + '\n'
-            hostapdConfig += 'hw_mode=g\n'
-            hostapdConfig += 'channel=' + channel + '\n'
-            hostapdConfig += 'macaddr_acl=0\n'
-            hostapdConfig += 'auth_algs=1\n'
-            hostapdConfig += 'ignore_broadcast_ssid=0\n'
+            hostapdConfig += 'auth_algs=1\n'                    # Authenticatin algorithm
 
         elif encryption == 'WPA2':
             password = input('\nWifi password [more than 8 chars]> ')
             print()
 
-            hostapdConfig += 'interface=' + interface + '\n'
-            hostapdConfig += 'driver=nl80211\n'
-            hostapdConfig += 'ssid=' + ssid + '\n'
-            hostapdConfig += 'hw_mode=g\n'
-            hostapdConfig += 'wpa=2\n'
-            hostapdConfig += 'wpa_passphrase=' + password + '\n'
-            hostapdConfig += 'wpa_key_mgmt=WPA-PSK\n'
-            hostapdConfig += 'wpa_pairwise=TKIP\n'
-            hostapdConfig += 'rsn_pairwise=CCMP\n'
-            hostapdConfig += 'channel=' + channel + '\n'
-            hostapdConfig += 'macaddr_acl=0\n'
-            hostapdConfig += 'auth_algs=3\n'
-            hostapdConfig += 'ignore_broadcast_ssid=0\n'
+            hostapdConfig += 'wpa=2\n'                          # Enable WPA2
+            hostapdConfig += 'wpa_passphrase=' + password + '\n'# WPA pre-shared key (WiFi password)
+            hostapdConfig += 'wpa_key_mgmt=WPA-PSK\n'           # Accepted key management algorithms
+            hostapdConfig += 'wpa_pairwise=TKIP\n'              # Pairwsie cipher for WPA (Temporal Key Integrity Protocl) 
+            hostapdConfig += 'rsn_pairwise=CCMP\n'              # Pairwise cipher for RSN/WPA2 (AES-CBC)
+            hostapdConfig += 'auth_algs=3\n'                    # Authenticatin algorithm
 
         f = open(os.path.join(tempFolder, hostapdConfigFile), 'w')
         f.write(hostapdConfig)
