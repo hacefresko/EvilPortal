@@ -1,4 +1,5 @@
-import os, re, random, requests, time, signal, threading
+import os, re, time, signal, threading
+from scapy.all import *
 
 tempFolder = '/tmp/evilportal'
 
@@ -100,16 +101,16 @@ class networkInterfaces:
             return -1
 
         t = threading.currentThread()
-        # We assign stop=False to the current thread. This is used to stop the loop from other thread
+        # We assign stop=False as an attribute of the current thread. This is used to stop the loop from other thread
         while not getattr(t, 'stop', False):
             channel = self.interfaces[nInterface]['channel']
-            channel = channel + 5
-            if channel > 11:
+            channel = channel + 1
+            if channel > 13:
                 channel = 1
             self.interfaces[nInterface]['channel'] = channel
 
             os.system('iw ' + self.interfaces[nInterface]['name'] + ' set channel ' + str(channel))
-            time.sleep(3)
+            time.sleep(0.5)
 
         os.system('iw ' + self.interfaces[nInterface]['name'] + ' set channel 1')
         self.interfaces[nInterface]['channel'] = 1
@@ -138,10 +139,20 @@ class networkInterfaces:
         hostapdConfig += 'macaddr_acl=0\n'                      # Station MAC address -based auth (0 = accept unless in deny list)
         hostapdConfig += 'ignore_broadcast_ssid=0\n'            # Require stations to know SSID to connect (ignore probe requests without full SSID)
 
-        if encryption == 'OPEN':
-            hostapdConfig += 'auth_algs=1\n'                    # Authenticatin algorithm
+        if encryption == 'OPN':
+            hostapdConfig += 'auth_algs=1\n'                    # Authenticatin algorithm (bit 0 = Open System Auth)
 
-        elif encryption == 'WPA2':
+        elif encryption == 'WPA/PSK':
+            password = input('\nWifi password [more than 8 chars]> ')
+            print()
+
+            hostapdConfig += 'wpa=1\n'                          # Enable WPA
+            hostapdConfig += 'wpa_passphrase=' + password + '\n'# WPA pre-shared key (WiFi password)
+            hostapdConfig += 'wpa_key_mgmt=WPA-PSK\n'           # Accepted key management algorithms
+            hostapdConfig += 'wpa_pairwise=TKIP CCMP\n'         # Pairwsie cipher for WPA (Temporal Key Integrity Protocl) 
+            hostapdConfig += 'auth_algs=3\n'                    # Authenticatin algorithm (bit 2 = Shared Key Auth)
+
+        elif encryption == 'WPA2/PSK':
             password = input('\nWifi password [more than 8 chars]> ')
             print()
 
@@ -150,7 +161,7 @@ class networkInterfaces:
             hostapdConfig += 'wpa_key_mgmt=WPA-PSK\n'           # Accepted key management algorithms
             hostapdConfig += 'wpa_pairwise=TKIP\n'              # Pairwsie cipher for WPA (Temporal Key Integrity Protocl) 
             hostapdConfig += 'rsn_pairwise=CCMP\n'              # Pairwise cipher for RSN/WPA2 (AES-CBC)
-            hostapdConfig += 'auth_algs=3\n'                    # Authenticatin algorithm
+            hostapdConfig += 'auth_algs=3\n'                    # Authenticatin algorithm (bit 2 = Shared Key Auth)
 
         f = open(os.path.join(tempFolder, hostapdConfigFile), 'w')
         f.write(hostapdConfig)
@@ -211,8 +222,6 @@ class networkInterfaces:
         return 0
 
     def sniffAccessPoints(self, nInterface, sigint_handler):
-        tcpdumpLogFile = 'tcpdump.log'
-        tcpdumpFD = 0
         accessPoints = []
 
         if type(nInterface) is not int:
@@ -222,15 +231,6 @@ class networkInterfaces:
         if nInterface < 0 or nInterface >= len(self.interfaces):
             print('[x] Input value out of bounds!\n')
             return -1
-
-        # We need to create the file before reading it, as tcpdump
-        # may delay a few miliseconds until it creates it it self
-        f = open(os.path.join(tempFolder, tcpdumpLogFile), 'w+')
-        f.close()
-
-        os.system('tcpdump -l -e -i' + self.interfaces[nInterface]['name'] + ' type mgt subtype beacon >' + os.path.join(tempFolder, tcpdumpLogFile) + ' 2>&1 &')
-
-        tcpdumpFD = open(os.path.join(tempFolder, tcpdumpLogFile), 'r')
 
         # stop is defined as global for the sigint handler to be able to get it
         global stop
@@ -243,45 +243,38 @@ class networkInterfaces:
         
         signal.signal(signal.SIGINT, sigint_handler_probe)
 
-        t = threading.Thread(target = self.changeChannel, args = (nInterface,))
-        t.start()
+        changeChThread = threading.Thread(target = self.changeChannel, args = (nInterface,))
+        changeChThread.start()
 
         print('WIFI ACCESS POINTS (Ctrl C to stop)')
-        print('+---+-------------------+------+----+----------------------------------+')
-        print('| i |       BSSID       | ENCR | CH |               SSID               |')
-        print('+---+-------------------+------+----+----------------------------------+')
+        print('+---+-------------------+----------+----+----------------------------------+')
+        print('| i |       BSSID       | ENCRYPTN | CH |               SSID               |')
+        print('+---+-------------------+----------+----+----------------------------------+')
+
+        def sniffAP_callback(pkt):
+            # Protocol 802.11, type management, subtype beacon
+            if pkt.haslayer(Dot11) and pkt[Dot11].type == 0 and pkt[Dot11].subtype == 8:
+                # Address 2 is source address (in this case dest is broadcast FF:FF:FF:FF:FF:FF)
+                # upper() prints all letters to capital letters
+                bssid = pkt[Dot11].addr2.upper()
+                ssid = pkt.info.decode('UTF-8')
+                channel = pkt[Dot11Beacon].network_stats().get('channel')
+                encryption = pkt[Dot11Beacon].network_stats().get('crypto').pop()
+                
+                newAccessPoint = {'bssid' : bssid, 'ssid' : ssid, 'channel' : str(channel), 'encryption' : encryption}
+                if ssid and newAccessPoint not in accessPoints:
+                    accessPoints.append(newAccessPoint)
+                    print('|%3s| %17s | %8s | %2s | %-32.32s |' % (str(len(accessPoints)), bssid, encryption, channel, ssid))       
+
+        sniffer = AsyncSniffer(iface=self.interfaces[nInterface]['name'], prn=sniffAP_callback)
+        sniffer.start()
+
         while not stop:
-            line = tcpdumpFD.readline()
-            if line:
-                bssid = re.search(r'([0-9a-f]{2}:){5}[0-9a-f]{2}', line)
-                ssid = re.findall(r'[(](.+?)[)]', line)
-                channel = re.search(r'CH: \d+', line)
-                privacy = re.search('PRIVACY', line)
-                if len(ssid) == 3:
-                    if privacy:
-                        encryption = 'WPA2'
-                    else:
-                        encryption = 'OPEN'
+            pass
 
-                    newAccessPoint = {'bssid' : bssid.group(), 'ssid' : ssid[2], 'channel' : channel.group().split(': ')[1], 'encryption' : encryption}
-                    try:
-                        accessPoints.index(newAccessPoint)
-                        inList = True
-                    except ValueError:
-                        inList = False
-                    
-                    if not inList:
-                        accessPoints.append(newAccessPoint)
-                        print('|%3s| %17s | %4s | %2s | %-32.32s |' % (str(len(accessPoints)), bssid.group(), encryption, channel.group().split(': ')[1], ssid[2]))
-
-            # If not paused, python3 would consume a crazy amount of resources
-            time.sleep(0.05)
-
-        print('--+-------------------+------+----+----------------------------------+\n')
-        tcpdumpFD.close()
-        t.stop = True
-        t.join()
-        os.system('pkill tcpdump')
+        print('--+-------------------+----------+----+----------------------------------+')
+        changeChThread.stop = True
+        sniffer.stop()
 
         accessPoint = -1
         while accessPoint < 0 or accessPoint >= len(accessPoints):
@@ -291,11 +284,9 @@ class networkInterfaces:
                 print('[x] Input out of bounds!')
             else:
                 return accessPoints[accessPoint]
-        print()
+        print('\n')
 
     def sniffProbeReq(self, nInterface, sigint_handler):
-        tcpdumpLogFile = 'tcpdump.log'
-        tcpdumpFD = 0
         probeRequests = []
 
         if type(nInterface) is not int:
@@ -306,6 +297,8 @@ class networkInterfaces:
             print('[x] Input value out of bounds!\n')
             return -1
 
+
+        '''
         # We need to create the file before reading it, as tcpdump
         # may delay a few miliseconds until it creates it it self
         f = open(os.path.join(tempFolder, tcpdumpLogFile), 'w+')
@@ -327,12 +320,16 @@ class networkInterfaces:
         
         signal.signal(signal.SIGINT, sigint_handler_probe)
 
+        t = threading.Thread(target = self.changeChannel, args = (nInterface,))
+        t.start()
+
         print('PROBE REQUESTS (Ctrl C to stop)')
         while not stop:
             line = tcpdumpFD.readline()
             if line:
                 client = re.search(r'([0-9a-f]{2}:){5}[0-9a-f]{2}', line)
                 ap = re.findall(r'[(](.+?)[)]', line)
+                freq = re.findall(r'\d+ MHz', line)
                 if client and len(ap) == 2:
                     newProbeRequest = {'client' : client.group(), 'ap' : ap[1]}
                     try:
@@ -343,13 +340,15 @@ class networkInterfaces:
                     
                     if not inList:
                         probeRequests.append(newProbeRequest)
-                        print('[' + str(len(probeRequests)) + '] ' + client.group() + ' -> ' + ap[1])
+                        print('[' + str(len(probeRequests)) + '] ' + client.group() + ' -> ' + ap[1] + ' [' + freq[0] + ']')
 
             time.sleep(0.1)
         
         tcpdumpFD.close()
         os.system('pkill tcpdump')
+        t.stop = True
         print()
+        '''
         
         probeRequest = -1
         while probeRequest < 0 or probeRequest >= len(probeRequests):
@@ -481,9 +480,9 @@ while op < 1 or op > 3:
             if encr < 1 or encr > 2:
                 print('[x] Input value out of bounds!\n')
             elif encr == 1:
-                encryption = "OPEN"
+                encryption = "OPN"
             elif encr == 2:
-                encryption = "WPA2"
+                encryption = "WPA2/PSK"
         print()
 
         # Launch hostapd
@@ -525,9 +524,9 @@ while op < 1 or op > 3:
             if encr < 1 or encr > 2:
                 print('[x] Input value out of bounds!\n')
             elif encr == 1:
-                encryption = "OPEN"
+                encryption = "OPN"
             elif encr == 2:
-                encryption = "WPA2"
+                encryption = "WPA2/PSK"
         print()
 
         # Launch hostapd
