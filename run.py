@@ -181,6 +181,7 @@ class networkInterfaces:
         print('\n')
 
     def sniffUsedAccessPoints(self, nInterface, sigint_handler):
+        accessPointsWOClients = {}
         accessPoints = []
 
         if type(nInterface) is not int:
@@ -220,17 +221,18 @@ class networkInterfaces:
                 channel = pkt[Dot11Beacon].network_stats().get('channel')
                 encryption = pkt[Dot11Beacon].network_stats().get('crypto').pop()
                 
-                newAccessPoint = {'ssid' : ssid, 'channel' : str(channel), 'encryption' : encryption, 'clients' : []}
-                if ssid and bssid not in accessPoints:
-                    accessPoints.append({ bssid : newAccessPoint })
+                newAccessPoint = {'ssid' : ssid, 'channel' : str(channel), 'encryption' : encryption}
+                if ssid and bssid not in accessPointsWOClients:
+                    accessPointsWOClients[bssid] = newAccessPoint
 
             # Protocol 802.11, type data
-            if pkt.haslayer(Dot11) and pkt[Dot11].type == 2:
+            elif pkt.haslayer(Dot11) and pkt[Dot11].type == 2:
                 bssid = pkt[Dot11].addr2.upper()
                 client = pkt[Dot11].addr1.upper()
-                if bssid in accessPoints:
-                    accessPoints[bssid]['clients'].append(client)
-                    print('|%3s| %17s | %8s | %2s | %-32.32s | %17s |' % (str(len(accessPoints)), bssid, accessPoints[bssid]['encryption'], accessPoints[bssid]['channel'], accessPoints[bssid]['ssid'], client))
+                if bssid in accessPointsWOClients:
+                    newAccessPoint = {'bssid' : bssid , 'ssid' : accessPointsWOClients[bssid]['ssid'], 'channel' : accessPointsWOClients[bssid]['channel'], 'encryption' : accessPointsWOClients[bssid]['encryption']}
+                    accessPoints.append(newAccessPoint)
+                    print('|%3s| %17s | %8s | %2s | %-32.32s | %17s |' % (str(len(accessPoints)), accessPoints[len(accessPoints) - 1]['bssid'], accessPoints[len(accessPoints) - 1]['encryption'], accessPoints[len(accessPoints) - 1]['channel'], accessPoints[len(accessPoints) - 1]['ssid'], client))
 
         sniffer = AsyncSniffer(iface=self.interfaces[nInterface]['name'], prn=sniffAP_callback)
         sniffer.start()
@@ -515,7 +517,7 @@ print('[+] Iptables flushed')
 
 # Select operation mode
 op = -1
-while op < 1 or op > 3:
+while op < 1 or op > 4:
     print('\nOPERATION MODE')
     print('[1] -> Create new acces point')
     print('[2] -> [Evil Twin] Intercept existing access point')
