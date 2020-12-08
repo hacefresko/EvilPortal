@@ -115,6 +115,132 @@ class networkInterfaces:
         os.system('iw ' + self.interfaces[nInterface]['name'] + ' set channel 1')
         self.interfaces[nInterface]['channel'] = 1
 
+    def sniffAccessPoints(self, nInterface, sigint_handler):
+        accessPoints = []
+
+        if type(nInterface) is not int:
+            print('[x] Input value is not an integer!\n')
+            return -1
+
+        if nInterface < 0 or nInterface >= len(self.interfaces):
+            print('[x] Input value out of bounds!\n')
+            return -1
+
+        # stop is defined as global for the sigint handler to be able to get it
+        global stop
+        stop = False
+
+        def sigint_handler_probe(sig, frame):
+            global stop
+            stop = True
+            signal.signal(signal.SIGINT, sigint_handler)
+        
+        signal.signal(signal.SIGINT, sigint_handler_probe)
+
+        changeChThread = threading.Thread(target = self.changeChannel, args = (nInterface,))
+        changeChThread.start()
+
+        print('WIFI ACCESS POINTS (Ctrl C to stop)')
+        print('+---+-------------------+----------+----+----------------------------------+')
+        print('| i |       BSSID       | ENCRYPTN | CH |               SSID               |')
+        print('+---+-------------------+----------+----+----------------------------------+')
+
+        def sniffAP_callback(pkt):
+            # Protocol 802.11, type management, subtype beacon
+            if pkt.haslayer(Dot11) and pkt[Dot11].type == 0 and pkt[Dot11].subtype == 8:
+                # Address 2 is source address (in this case dest is broadcast FF:FF:FF:FF:FF:FF)
+                # upper() prints all letters to capital letters
+                bssid = pkt[Dot11].addr2.upper()
+                ssid = pkt.info.decode('UTF-8')
+                channel = pkt[Dot11Beacon].network_stats().get('channel')
+                encryption = pkt[Dot11Beacon].network_stats().get('crypto').pop()
+                
+                newAccessPoint = {'bssid' : bssid, 'ssid' : ssid, 'channel' : str(channel), 'encryption' : encryption}
+                if ssid and newAccessPoint not in accessPoints:
+                    accessPoints.append(newAccessPoint)
+                    print('|%3s| %17s | %8s | %2s | %-32.32s |' % (str(len(accessPoints)), bssid, encryption, channel, ssid))       
+
+        sniffer = AsyncSniffer(iface=self.interfaces[nInterface]['name'], prn=sniffAP_callback)
+        sniffer.start()
+
+        while not stop:
+            pass
+
+        print('--+-------------------+----------+----+----------------------------------+')
+        changeChThread.stop = True
+        sniffer.stop()
+
+        accessPoint = -1
+        while accessPoint < 0 or accessPoint >= len(accessPoints):
+            accessPoint = int(input('Select access point to mirror > ')) - 1
+
+            if accessPoint < 0 or accessPoint >= len(accessPoints):
+                print('[x] Input out of bounds!')
+            else:
+                return accessPoints[accessPoint]
+        print('\n')
+
+    def sniffProbeReq(self, nInterface, sigint_handler):
+        probeRequests = []
+
+        if type(nInterface) is not int:
+            print('[x] Input value is not an integer!\n')
+            return -1
+
+        if nInterface < 0 or nInterface >= len(self.interfaces):
+            print('[x] Input value out of bounds!\n')
+            return -1
+
+        # stop is defined as global for the sigint handler to be able to get it
+        global stop
+        stop = False
+
+        def sigint_handler_probe(sig, frame):
+            global stop
+            stop = True
+            signal.signal(signal.SIGINT, sigint_handler)
+        
+        signal.signal(signal.SIGINT, sigint_handler_probe)
+
+        changeChThread = threading.Thread(target = self.changeChannel, args = (nInterface,))
+        changeChThread.start()
+
+        print('WIFI ACCESS POINTS (Ctrl C to stop)')
+        print('+---+-------------------+----------------------------------+')
+        print('| i |       CLIENT      |               SSID               |')
+        print('+---+-------------------+----------------------------------+')
+
+        def sniffAP_callback(pkt):
+            # Protocol 802.11, type management, subtype probe request
+            if pkt.haslayer(Dot11) and pkt[Dot11].type == 0 and pkt[Dot11].subtype == 4:
+                client = pkt[Dot11].addr2.upper()
+                ssid = pkt.info.decode('UTF-8')
+                
+                newProbeRequest = {'client' : client, 'ssid' : ssid} 
+                if ssid and newProbeRequest not in probeRequests:
+                    probeRequests.append(newProbeRequest)
+                    print('|%3s| %17s | %-32.32s |' % (str(len(probeRequests)), client, ssid))       
+
+        sniffer = AsyncSniffer(iface=self.interfaces[nInterface]['name'], prn=sniffAP_callback)
+        sniffer.start()
+
+        while not stop:
+            pass
+
+        print('--+-------------------+----------------------------------+')        
+        changeChThread.stop = True
+        sniffer.stop()
+        
+        probeRequest = -1
+        while probeRequest < 0 or probeRequest >= len(probeRequests):
+            probeRequest = int(input('Select probe request to mirror > ')) - 1
+
+            if probeRequest < 0 or probeRequest >= len(probeRequests):
+                print('[x] Input out of bounds!')
+            else:
+                return probeRequests[probeRequest]
+
+
     def launchHostapd(self, nInterface, ssid, channel, encryption):
         if type(nInterface) is not int:
             print('[x] Input value is not an integer!\n')
@@ -220,144 +346,6 @@ class networkInterfaces:
         print('[+] dnsmasq succesfuly configured')
 
         return 0
-
-    def sniffAccessPoints(self, nInterface, sigint_handler):
-        accessPoints = []
-
-        if type(nInterface) is not int:
-            print('[x] Input value is not an integer!\n')
-            return -1
-
-        if nInterface < 0 or nInterface >= len(self.interfaces):
-            print('[x] Input value out of bounds!\n')
-            return -1
-
-        # stop is defined as global for the sigint handler to be able to get it
-        global stop
-        stop = False
-
-        def sigint_handler_probe(sig, frame):
-            global stop
-            stop = True
-            signal.signal(signal.SIGINT, sigint_handler)
-        
-        signal.signal(signal.SIGINT, sigint_handler_probe)
-
-        changeChThread = threading.Thread(target = self.changeChannel, args = (nInterface,))
-        changeChThread.start()
-
-        print('WIFI ACCESS POINTS (Ctrl C to stop)')
-        print('+---+-------------------+----------+----+----------------------------------+')
-        print('| i |       BSSID       | ENCRYPTN | CH |               SSID               |')
-        print('+---+-------------------+----------+----+----------------------------------+')
-
-        def sniffAP_callback(pkt):
-            # Protocol 802.11, type management, subtype beacon
-            if pkt.haslayer(Dot11) and pkt[Dot11].type == 0 and pkt[Dot11].subtype == 8:
-                # Address 2 is source address (in this case dest is broadcast FF:FF:FF:FF:FF:FF)
-                # upper() prints all letters to capital letters
-                bssid = pkt[Dot11].addr2.upper()
-                ssid = pkt.info.decode('UTF-8')
-                channel = pkt[Dot11Beacon].network_stats().get('channel')
-                encryption = pkt[Dot11Beacon].network_stats().get('crypto').pop()
-                
-                newAccessPoint = {'bssid' : bssid, 'ssid' : ssid, 'channel' : str(channel), 'encryption' : encryption}
-                if ssid and newAccessPoint not in accessPoints:
-                    accessPoints.append(newAccessPoint)
-                    print('|%3s| %17s | %8s | %2s | %-32.32s |' % (str(len(accessPoints)), bssid, encryption, channel, ssid))       
-
-        sniffer = AsyncSniffer(iface=self.interfaces[nInterface]['name'], prn=sniffAP_callback)
-        sniffer.start()
-
-        while not stop:
-            pass
-
-        print('--+-------------------+----------+----+----------------------------------+')
-        changeChThread.stop = True
-        sniffer.stop()
-
-        accessPoint = -1
-        while accessPoint < 0 or accessPoint >= len(accessPoints):
-            accessPoint = int(input('Select access point to mirror > ')) - 1
-
-            if accessPoint < 0 or accessPoint >= len(accessPoints):
-                print('[x] Input out of bounds!')
-            else:
-                return accessPoints[accessPoint]
-        print('\n')
-
-    def sniffProbeReq(self, nInterface, sigint_handler):
-        probeRequests = []
-
-        if type(nInterface) is not int:
-            print('[x] Input value is not an integer!\n')
-            return -1
-
-        if nInterface < 0 or nInterface >= len(self.interfaces):
-            print('[x] Input value out of bounds!\n')
-            return -1
-
-
-        '''
-        # We need to create the file before reading it, as tcpdump
-        # may delay a few miliseconds until it creates it it self
-        f = open(os.path.join(tempFolder, tcpdumpLogFile), 'w+')
-        f.close()
-
-        os.system('tcpdump -l -e -i' + self.interfaces[nInterface]['name'] + ' type mgt subtype probe-req>' + os.path.join(tempFolder, tcpdumpLogFile) + ' 2>&1 &')
-
-        tcpdumpFD = open(os.path.join(tempFolder, tcpdumpLogFile), 'r')
-
-        # stop is defined as global for the sigint handler to be able to get it
-        global stop
-        stop = False
-
-        # Define new sigint handler to be able to stop the scanning loop
-        def sigint_handler_probe(sig, frame):
-            global stop
-            stop = True
-            signal.signal(signal.SIGINT, sigint_handler)
-        
-        signal.signal(signal.SIGINT, sigint_handler_probe)
-
-        t = threading.Thread(target = self.changeChannel, args = (nInterface,))
-        t.start()
-
-        print('PROBE REQUESTS (Ctrl C to stop)')
-        while not stop:
-            line = tcpdumpFD.readline()
-            if line:
-                client = re.search(r'([0-9a-f]{2}:){5}[0-9a-f]{2}', line)
-                ap = re.findall(r'[(](.+?)[)]', line)
-                freq = re.findall(r'\d+ MHz', line)
-                if client and len(ap) == 2:
-                    newProbeRequest = {'client' : client.group(), 'ap' : ap[1]}
-                    try:
-                        probeRequests.index(newProbeRequest)
-                        inList = True
-                    except ValueError:
-                        inList = False
-                    
-                    if not inList:
-                        probeRequests.append(newProbeRequest)
-                        print('[' + str(len(probeRequests)) + '] ' + client.group() + ' -> ' + ap[1] + ' [' + freq[0] + ']')
-
-            time.sleep(0.1)
-        
-        tcpdumpFD.close()
-        os.system('pkill tcpdump')
-        t.stop = True
-        print()
-        '''
-        
-        probeRequest = -1
-        while probeRequest < 0 or probeRequest >= len(probeRequests):
-            probeRequest = int(input('Select probe request to mirror > ')) - 1
-
-            if probeRequest < 0 or probeRequest >= len(probeRequests):
-                print('[x] Input out of bounds!')
-            else:
-                return probeRequests[probeRequest]
 
 def configWebApp():
     # Config captive portal files
@@ -512,7 +500,7 @@ while op < 1 or op > 3:
 
     elif op == 3:
         probeRequest = networkInterfaces.sniffProbeReq(interface, sigint_handler)
-        ssid = probeRequest['ap']
+        ssid = probeRequest['ssid']
         channel = input('Channel > ')
 
         encr = -1
