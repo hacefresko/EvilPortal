@@ -188,7 +188,7 @@ class networkInterfaces:
                     else:
                         encr = encryption
                         
-                    print('|%3s| %17s | %4.4s |%-18.18s|' % (str(len(accessPoints)), bssid, encryption, ssid))       
+                    print('|%3s| %17s | %4.4s | %-16.16s |' % (str(len(accessPoints)), bssid, encryption, ssid))       
 
         sniffer = AsyncSniffer(iface=self.interfaces[nInterface]['name'], prn=sniffAP_callback)
         sniffer.start()
@@ -318,6 +318,7 @@ class networkInterfaces:
 
         print('PROBE REQUESTS (Ctrl C to stop)')
         print('\n            CLIENT           SSID')
+        print('           ------------    -----------')
 
         def sniffAP_callback(pkt):
             # Protocol 802.11, type management, subtype probe request
@@ -328,7 +329,7 @@ class networkInterfaces:
                 newProbeRequest = {'client' : client, 'ssid' : ssid} 
                 if ssid and newProbeRequest not in probeRequests:
                     probeRequests.append(newProbeRequest)
-                    print('[%2s] %17s -> %-32.32s' % (str(len(probeRequests)), client, ssid))       
+                    print('[%2s] %17s -> %-24.24s' % (str(len(probeRequests)), client, ssid))       
 
         sniffer = AsyncSniffer(iface=self.interfaces[nInterface]['name'], prn=sniffAP_callback)
         sniffer.start()
@@ -596,9 +597,9 @@ op = -1
 while op < 1 or op > 4:
     print('\nOPERATION MODE')
     print('[1] -> Create new acces point')
-    print('[2] -> [Evil Twin] Intercept existing access point')
-    print('[3] -> [Evil Twin] Intercept clients connected to access point')
-    print('[4] -> [Karma] Create acces point recogniced by victim')
+    print('[2] -> [Evil Twin]')
+    print('[3] -> [Evil Twin] (showing clients)')
+    print('[4] -> [Karma Attack]')
     op = int(input('Select operation mode > '))
     print()
 
