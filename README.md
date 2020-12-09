@@ -8,7 +8,7 @@ to the access point.
 It has been tested in Kali (run.sh) and Raspbian (raspberry_run.sh).
 
 Recall that this script depends much on the interface used, the access points and devices protocols, the access
-points and devices itself or even on the country, so it may not work on every device out there.
+points and devices itself or even on the country, so it may not work on every device out there (ie. routers with Protected Management Frames are not vulnerable to Evil Twin, as they are protected against deauth attacks).
 
 ## Requirements
 - scapy (Python3)
