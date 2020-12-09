@@ -597,7 +597,7 @@ while op < 1 or op > 4:
     print('\nOPERATION MODE')
     print('[1] -> Create new acces point')
     print('[2] -> [Evil Twin] Intercept existing access point')
-    print('[3] -> [Evil Twin] Intercept client connected to access point')
+    print('[3] -> [Evil Twin] Intercept clients connected to access point')
     print('[4] -> [Karma] Create acces point recogniced by victim')
     op = int(input('Select operation mode > '))
     print()
