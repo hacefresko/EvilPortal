@@ -237,9 +237,9 @@ class networkInterfaces:
         changeChThread.start()
 
         print('WIFI ACCESS POINTS AND CLIENTS (Ctrl C to stop)')
-        print('+---+----------------+------+-------------------+')
-        print('| i |      SSID      | ENCR |       CLIENT      |')
-        print('+---+----------------+------+-------------------+')
+        print('+---+------------------+------+-------------------+')
+        print('| i |       SSID       | ENCR |       CLIENT      |')
+        print('+---+------------------+------+-------------------+')
 
         def sniffAP_callback(pkt):
             # Protocol 802.11, type management, subtype beacon
@@ -269,7 +269,7 @@ class networkInterfaces:
                         encr = 'WPA'
                     else:
                         encr = encryption
-                    print('|%3s| %-14s | %4.4s | %17s |' % (str(len(accessPoints)), accessPoints[len(accessPoints) - 1]['ssid'], encr, client))
+                    print('|%3s| %-16.16s | %4.4s | %17s |' % (str(len(accessPoints)), accessPoints[len(accessPoints) - 1]['ssid'], encr, client))
 
         sniffer = AsyncSniffer(iface=self.interfaces[nInterface]['name'], prn=sniffAP_callback)
         sniffer.start()
