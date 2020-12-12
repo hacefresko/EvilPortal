@@ -49,50 +49,50 @@ Where the different modes differ, is in the way they get the victims to connect 
 
 - **Mode 1**: Create new access point (1 network interface with monitor mode needed)
 
-1. Creates a new access point with hostapd given some information provided by the user (SSID, encryption and channel)
+	1. Creates a new access point with hostapd given some information provided by the user (SSID, encryption and channel)
 
-2. Creates a DHCP and a DNS server with dnsmasq which assign a domain name to the network interface 
+	2. Creates a DHCP and a DNS server with dnsmasq which assign a domain name to the network interface 
 
-3. Victims connect to our ap
+	3. Victims connect to our ap
 		   
 
 - **Mode 2**: (Evil Twin) Intercept existing access point (2 network interface with monitor mode needed)
 
-1. Sniffs beacon frames to get SSIDs, channels and BSSIDs from nearby access points
-		
-2. With the information gathered, it selects an access point and creates an identical one (encryption must 
-   be provided by user)
-		
-3. Creates a DHCP and a DNS server with dnsmasq which assign a domain name to the wifi interface
-		
-4. Takes down the original access point by sending deauth frames, so the clients connects to us thinking
-   they're connecting back to the original ap
+	1. Sniffs beacon frames to get SSIDs, channels and BSSIDs from nearby access points
+
+	2. With the information gathered, it selects an access point and creates an identical one (encryption must 
+	   be provided by user)
+
+	3. Creates a DHCP and a DNS server with dnsmasq which assign a domain name to the wifi interface
+
+	4. Takes down the original access point by sending deauth frames, so the clients connects to us thinking
+	   they're connecting back to the original ap
 
 
 - **Mode 3**: (Evil Twin) Intercept clients connected to access point (2 network interface with monitor mode needed)
 
-1. Sniffs beacon and data frames to get SSIDs, channels and BSSIDs from nearby access points, showing only
-   the ones with clients connected to them (and also showing the MAC address of the clients).
-		
-2. With the information gathered, it selects an access point and creates an identical one (again, encryption
-   must be provided by user)
-		
-3. Creates a DHCP and a DNS server with dnsmasq which assign a domain name to the wifi interface
-		
-4. Takes down the original access point by sending deauth frames, so the clients connects to us thinking
-   they're connecting back to the original ap
+	1. Sniffs beacon and data frames to get SSIDs, channels and BSSIDs from nearby access points, showing only
+	   the ones with clients connected to them (and also showing the MAC address of the clients).
+
+	2. With the information gathered, it selects an access point and creates an identical one (again, encryption
+	   must be provided by user)
+
+	3. Creates a DHCP and a DNS server with dnsmasq which assign a domain name to the wifi interface
+
+	4. Takes down the original access point by sending deauth frames, so the clients connects to us thinking
+	   they're connecting back to the original ap
    
 
 - **Mode 4**: (Karma Attack) Create access point recogniced by the victim (1 network interface with monitor mode needed)
 
-1. Sniffs probe requests to get ESSIDs of the access points which free devices have recently been conneceted and are 
-   willing to connect to now
+	1. Sniffs probe requests to get ESSIDs of the access points which free devices have recently been conneceted and are 
+	   willing to connect to now
 
-2. Creates new access point with the ESSID contained in the selected probe request (encryption must be provided by the user)
+	2. Creates new access point with the ESSID contained in the selected probe request (encryption must be provided by the user)
 
-3. Creates a DHCP and a DNS server with dnsmasq which assign a domain name to the wifi interface
+	3. Creates a DHCP and a DNS server with dnsmasq which assign a domain name to the wifi interface
 
-4. Victims connect to our ap
+	4. Victims connect to our ap
   
   
 # Disclaimer
