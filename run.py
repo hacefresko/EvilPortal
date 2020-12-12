@@ -19,9 +19,9 @@ class networkInterfaces:
 
     # Here we find directories representing current network interfaces named after them
     netIntDir = '/sys/class/net'
-
-    dnsmasqLogFile = 'dnsmasq.log'
+    
     hostapdLogFile = 'hostapd.log'
+    dnsmasqLogFile = 'dnsmasq.log'
 
     def __init__(self):
         self.interfaces = []
@@ -298,7 +298,7 @@ class networkInterfaces:
 
         print('PROBE REQUESTS (Ctrl C to stop)')
         print('\n         CLIENT            SSID')
-	print('    -------------------   ----------')
+        print('    -------------------   ----------')
 
         def sniffAP_callback(pkt):
             # Protocol 802.11, type management, subtype probe request
@@ -330,6 +330,7 @@ class networkInterfaces:
                 return probeRequests[probeRequest]
 
     def launchHostapd(self, nInterface, ssid, channel, encryption):
+    
         if type(nInterface) is not int:
             print('[x] Input value is not an integer!\n')
             return -1
@@ -388,6 +389,7 @@ class networkInterfaces:
         return 0
 
     def launchDnsmasq(self, nInterface):
+    
         if type(nInterface) is not int:
             print('[x] Input value is not an integer!\n')
             return -1
@@ -418,7 +420,7 @@ class networkInterfaces:
         f = open(os.path.join(tempFolder, dnsmasqConfigFile), 'w')
         f.write(dnsmasqConfig)
         f.close
-
+		
         # Configures dnsmasq to assign the interface ip to the domain name so 
         # mod_rewrite  from .htaccess can reffer directly to the domain name in the URL
         f = open(os.path.join(tempFolder, dnsmasqHostsFile), 'w')
@@ -430,6 +432,10 @@ class networkInterfaces:
 
         # Initialize dnsmasq
         os.system('dnsmasq -C ' + os.path.join(tempFolder, dnsmasqConfigFile) + ' -H ' + os.path.join(tempFolder, dnsmasqHostsFile) + ' --log-facility=' + os.path.join(tempFolder, self.dnsmasqLogFile))
+        
+        if not os.path.isfile(os.path.join(tempFolder, self.dnsmasqLogFile)):
+            print('[x] dnsmasq couldn\'t be configured!')
+            return -1
 
         print('[+] dnsmasq succesfuly configured')
 
@@ -605,7 +611,8 @@ while op < 1 or op > 4:
         networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
 
         # Launch dnsmasq
-        networkInterfaces.launchDnsmasq(interface)
+        if networkInterfaces.launchDnsmasq(interface) != 0:
+            quit()
 
         # Config web app
         configWebApp()
@@ -657,7 +664,8 @@ while op < 1 or op > 4:
         networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
 
         # Launch dnsmasq
-        networkInterfaces.launchDnsmasq(interface)
+        if networkInterfaces.launchDnsmasq(interface) != 0:
+            quit()
 
         # Config web app
         configWebApp()
@@ -713,7 +721,8 @@ while op < 1 or op > 4:
         networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
 
         # Launch dnsmasq
-        networkInterfaces.launchDnsmasq(interface)
+        if networkInterfaces.launchDnsmasq(interface) != 0:
+            quit()
 
         # Config web app
         configWebApp()
@@ -744,7 +753,8 @@ while op < 1 or op > 4:
         networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
 
         # Launch dnsmasq
-        networkInterfaces.launchDnsmasq(interface)
+        if networkInterfaces.launchDnsmasq(interface) != 0:
+            quit()
 
         # Config web app
         configWebApp()

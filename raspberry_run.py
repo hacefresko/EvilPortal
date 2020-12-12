@@ -450,6 +450,10 @@ class networkInterfaces:
 
         # Initialize dnsmasq
         os.system('dnsmasq -C ' + os.path.join(tempFolder, dnsmasqConfigFile) + ' -H ' + os.path.join(tempFolder, dnsmasqHostsFile) + ' --log-facility=' + os.path.join(tempFolder, self.dnsmasqLogFile))
+        
+        if not os.path.isfile(os.path.join(tempFolder, dnsmasqLogFile)):
+            print('[x] dnsmasq couldn\'t be configured!')
+            return -1
 
         print('[+] dnsmasq succesfuly configured')
 
