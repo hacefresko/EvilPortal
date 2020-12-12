@@ -297,8 +297,8 @@ class networkInterfaces:
         changeChThread.start()
 
         print('PROBE REQUESTS (Ctrl C to stop)')
-        print('\n         CLIENT            SSID')
-        print('    -------------------   ----------')
+        print('\n           CLIENT            SSID')
+        print('     -----------------    ----------')
 
         def sniffAP_callback(pkt):
             # Protocol 802.11, type management, subtype probe request

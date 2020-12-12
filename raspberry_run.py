@@ -317,8 +317,8 @@ class networkInterfaces:
         changeChThread.start()
 
         print('PROBE REQUESTS (Ctrl C to stop)')
-        print('\n         CLIENT            SSID')
-        print('    -------------------   ----------')
+        print('\n           CLIENT            SSID')
+        print('     -----------------    ----------')
 
         def sniffAP_callback(pkt):
             # Protocol 802.11, type management, subtype probe request
@@ -451,7 +451,7 @@ class networkInterfaces:
         # Initialize dnsmasq
         os.system('dnsmasq -C ' + os.path.join(tempFolder, dnsmasqConfigFile) + ' -H ' + os.path.join(tempFolder, dnsmasqHostsFile) + ' --log-facility=' + os.path.join(tempFolder, self.dnsmasqLogFile))
         
-        if not os.path.isfile(os.path.join(tempFolder, dnsmasqLogFile)):
+        if not os.path.isfile(os.path.join(tempFolder, self.dnsmasqLogFile)):
             print('[x] dnsmasq couldn\'t be configured!')
             return -1
 
@@ -629,7 +629,8 @@ while op < 1 or op > 4:
         networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
 
         # Launch dnsmasq
-        networkInterfaces.launchDnsmasq(interface)
+        if networkInterfaces.launchDnsmasq(interface) != 0:
+            quit()
 
         # Config web app
         configWebApp()
@@ -681,7 +682,8 @@ while op < 1 or op > 4:
         networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
 
         # Launch dnsmasq
-        networkInterfaces.launchDnsmasq(interface)
+        if networkInterfaces.launchDnsmasq(interface) != 0:
+            quit()
 
         # Config web app
         configWebApp()
@@ -737,7 +739,8 @@ while op < 1 or op > 4:
         networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
 
         # Launch dnsmasq
-        networkInterfaces.launchDnsmasq(interface)
+        if networkInterfaces.launchDnsmasq(interface) != 0:
+            quit()
 
         # Config web app
         configWebApp()
@@ -768,8 +771,8 @@ while op < 1 or op > 4:
         networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
 
         # Launch dnsmasq
-        networkInterfaces.launchDnsmasq(interface)
-
+        if networkInterfaces.launchDnsmasq(interface) != 0:
+            quit()
         # Config web app
         configWebApp()
 
