@@ -34,7 +34,7 @@ class networkInterfaces:
 
         for dirpath, interfaces, filenames in os.walk(self.netIntDir):
             for interface in interfaces:
-                if re.match(r'wlan\d', interface):
+                if re.match(r'wl\w+', interface):
                     # Directory /sys/class/net/<interface>/type contains 
                     # the mode in which the interface is operating:
                     #   1   -> managed
@@ -317,8 +317,8 @@ class networkInterfaces:
         changeChThread.start()
 
         print('PROBE REQUESTS (Ctrl C to stop)')
-        print('\n            CLIENT           SSID')
-        print('           ------------    -----------')
+        print('\n         CLIENT            SSID')
+        print('    -------------------   ----------')
 
         def sniffAP_callback(pkt):
             # Protocol 802.11, type management, subtype probe request
