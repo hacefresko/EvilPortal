@@ -1,6 +1,7 @@
 import os, re, time, signal, threading
 from scapy.all import *
 
+phpVersion = 7.4
 tempFolder = '/tmp/evilportal'
 
 def title():
@@ -16,7 +17,6 @@ def title():
     return ret
 
 class networkInterfaces:
-
     # Here we find directories representing current network interfaces named after them
     netIntDir = '/sys/class/net'
     
@@ -489,7 +489,7 @@ def configWebApp():
     os.system('cp -f override.conf /etc/apache2/conf-available/')
     os.system('a2enconf override')
     os.system('a2enmod rewrite')
-    os.system('a2enmod php7.3')
+    os.system('a2enmod php' + str(phpVersion))
 
     # Reload/restart apache2 and start mysql (mariaDB)
     os.system('service apache2 reload')
