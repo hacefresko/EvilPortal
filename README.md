@@ -15,7 +15,8 @@ points and devices itself or even on the country, so it may not work on every de
 - dnsmasq
 - hostapd
 - apache2
-- php (you can select your version in the 3rd line of the script)
+- php (change version in 3rd line of python file)
+- php-mysqli
 - mariaDB (mysql)
 
 ## Before running the script:
