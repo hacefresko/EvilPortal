@@ -56,7 +56,7 @@ $sudo python3 raspberry_run.py
 - **Rogue AP**: Creates new AP with the data provided by the user. Requires 1 interface with monitor mode.
 
 - **Evil Twin**: Sniffs beacon frames to find available APs. Then, selected one is taken down with deauth packets and 
-clients who where connected to it now connect to us. Alternatively, it can also sniff data packets to show only APs with
+clients who were connected to it now connect to us. Alternatively, it can also sniff data packets to show only APs with
 connected clients. Requires 2 network interfaces with monitor mode.
 
 - **Karma**: Sniffs probe requests to find APs that clients are willing to connect to. Requires 1 interface with monitor 
