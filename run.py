@@ -334,7 +334,7 @@ class networkInterfaces:
                 return probeRequests[probeRequest]
 
     def sniffKnownOpenWifis(self, nInterface, sigint_handler):
-        numBeacons = 10000
+        numBeacons = 200
 
         if type(nInterface) is not int:
             print('[x] Input value is not an integer!\n')
@@ -385,9 +385,10 @@ class networkInterfaces:
             print('[-] Sending ' + str(numBeacons) + ' beacon frames with ssid ' + beaconSSID)
 
             # Type management, subtype beacon
-            beaconFrame = RadioTap()/Dot11(type=0, subtype=8, addr1='FF:FF:FF:FF:FF:FF', addr2=bssid, addr3=bssid)/Dot11Beacon()/Dot11Elt(ID='SSID', info=beaconSSID, len=len(beaconSSID))
+            beaconFrame = RadioTap()/Dot11(type=0, subtype=8, addr1='FF:FF:FF:FF:FF:FF', addr2=bssid, addr3=bssid)/Dot11Beacon(cap='ESS')/Dot11Elt(ID='SSID', info=beaconSSID, len=len(beaconSSID))
 
-            sendp(beaconFrame, iface=interface, count = numBeacons, verbose = 0)
+            # Beacon interval = 100TU (1TU = 1024us)
+            sendp(beaconFrame, iface=interface, count = numBeacons, inter=0.1024,verbose = 0)
             previousSSID = beaconSSID
 
         f.close()
