@@ -354,7 +354,7 @@ class networkInterfaces:
                 return probeRequests[probeRequest]
 
     def sniffKnownOpenWifis(self, nInterface, sigint_handler):
-        numBeacons = 10000
+        numBeacons = 100
 
         if type(nInterface) is not int:
             print('[x] Input value is not an integer!\n')
