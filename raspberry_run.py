@@ -202,7 +202,7 @@ class networkInterfaces:
 
         changeChThread.stop = True
         sniffer.stop()
-        print('--+-----------------+-----+---------------------+')
+		print('--+-------------------+------+------------------+')
 
         accessPoint = -1
         while accessPoint < 0 or accessPoint >= len(accessPoints):
@@ -283,7 +283,7 @@ class networkInterfaces:
 
         changeChThread.stop = True
         sniffer.stop()
-        print('--+----------------+------+-------------------+')
+        print('--+------------------+------+-------------------+')
 
         accessPoint = -1
         while accessPoint < 0 or accessPoint >= len(accessPoints):
@@ -516,6 +516,7 @@ class networkInterfaces:
         dnsmasqConfig += 'dhcp-option=6,10.0.0.1\n'                             # Set dns server to 10.0.0.1
         dnsmasqConfig += 'log-queries\n'                                        # Log all queries
         dnsmasqConfig += 'address=/#/10.0.0.1\n'                                # Response to every DNS query with 10.0.0.1 (where our captive portal is)
+		dnsmasqConfig += 'address=/www.google.com/216.58.209.68\n'              # Samsung devices check check if www.google.com is available apart from checking if connectivitycheck.gstatic.com/generate_204 responds with a redirection
 
         f = open(os.path.join(tempFolder, dnsmasqConfigFile), 'w')
         f.write(dnsmasqConfig)
