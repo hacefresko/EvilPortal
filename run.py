@@ -485,6 +485,12 @@ class networkInterfaces:
         # Stop dnsmasq daemon in case it's active
         os.system('service dnsmasq stop')
 
+        # Flush iptables to avoid conflicts
+        print ('[-] Flushing iptables...')
+        os.system('iptables -F')
+        os.system('iptables -t nat -F')
+        print('[+] Iptables flushed')
+
         # Config dnsmasq
         dnsmasqHostsFile = 'hosts'
         dnsmasqConfigFile = 'dnsmasq.conf'
@@ -498,7 +504,7 @@ class networkInterfaces:
         dnsmasqConfig += 'dhcp-option=6,10.0.0.1\n'                             # Set dns server to 10.0.0.1
         dnsmasqConfig += 'log-queries\n'                                        # Log all queries
         dnsmasqConfig += 'address=/#/10.0.0.1\n'                                # Response to every DNS query with 10.0.0.1 (where our captive portal is)
-        dnsmasqConfig += 'address=/www.google.com/216.58.209.68\n'              # Samsung devices check check if www.google.com is available apart from checking if connectivitycheck.gstatic.com/generate_204 responds with a redirection
+        dnsmasqConfig += 'address=/www.google.com/216.58.209.68\n'              # Samsung devices check if www.google.com is available apart from checking if connectivitycheck.gstatic.com/generate_204 responds with a redirection
 
         f = open(os.path.join(tempFolder, dnsmasqConfigFile), 'w')
         f.write(dnsmasqConfig)
@@ -654,12 +660,6 @@ try:
     os.makedirs(tempFolder)
 except OSError:
     print('[-] Temporal directory ' + tempFolder + ' already exists')
-
-# Flush iptables to avoid conflicts
-print ('[-] Flushing iptables...')
-os.system('iptables -F')
-os.system('iptables -t nat -F')
-print('[+] Iptables flushed')
 
 # Select operating mode
 op = -1
