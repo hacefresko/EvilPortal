@@ -12,6 +12,8 @@ itself or even on the country, so it may not work on every device out there (ie.
 are not vulnerable to Evil Twin, as they are protected against deauth attacks).
 
 
+![screenshot](https://raw.githubusercontent.com/hacefresko/EvilPortal/master/git%20resources/screenshot.png)
+
 ## Requirements
 - Python3
 - scapy
