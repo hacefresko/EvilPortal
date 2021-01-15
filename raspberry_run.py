@@ -202,7 +202,7 @@ class networkInterfaces:
 
         changeChThread.stop = True
         sniffer.stop()
-		print('--+-------------------+------+------------------+')
+        print('--+-------------------+------+------------------+')
 
         accessPoint = -1
         while accessPoint < 0 or accessPoint >= len(accessPoints):
