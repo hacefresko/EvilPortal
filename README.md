@@ -1,6 +1,6 @@
 # EvilPortal
 
-![Banner](https://raw.githubusercontent.com/hacefresko/EvilPortal/main/git%20resources/banner.png)
+![Banner](https://raw.githubusercontent.com/hacefresko/EvilPortal/master/git%20resources/banner.png)
 
 EvilPortal is a python script to perform phishing attacks through captive portals.
 
