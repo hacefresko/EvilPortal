@@ -1,5 +1,7 @@
 # EvilPortal
 
+![Banner](https://raw.githubusercontent.com/hacefresko/EvilPortal/main/git%20resources/banner.png)
+
 EvilPortal is a python script to perform phishing attacks through captive portals.
 
 It can perform various techniques, such as Evil Twin or Karma, to prompt captive portals among users who connect 
