@@ -80,5 +80,5 @@ This 302 redirection is what indicates to the device that this is a captive port
   
 ## Disclaimer
 This tool was made for learning purposes and security testing of my own networks.
-Please, do not use without the consent of the WiFi networks/devices owners or any other illegal activities.
-User discrection is advised.
+Usage of this tool against infrastructures without the consent of the owner can be considered as an illegal activity.
+Authors assume no liability and are not responsible for any misuse or damage caused by this program.
